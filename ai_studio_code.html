@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Flow Command Center</title>
+  
+  <!-- Premium Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100;200;300;400;500&family=Outfit:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Outfit', 'sans-serif'], mono: ['"JetBrains Mono"', 'monospace'] },
+          animation: { 
+            'spin-slow': 'spin 40s linear infinite',
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- React & Babel -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    :root {
+      --bg-base: #020203;
+      --bg-break: #010604;
+      --panel: rgba(10, 10, 15, 0.55);
+      --panel-solid: #0d0d12;
+      --text: #ffffff;
+      --text-muted: #6b7280;
+      --border: rgba(255, 255, 255, 0.06);
+      --border-light: rgba(255, 255, 255, 0.15);
+      --hover: rgba(255, 255, 255, 0.05);
+      --glow: rgba(59, 130, 246, 0.15);
+    }
+    
+    body {
+      background-color: var(--bg-base);
+      color: var(--text);
+      overflow: hidden;
+      transition: background-color 1.5s ease;
+      overscroll-behavior-y: none;
+    }
+    
+    /* Futuristic Grid Background */
+    .bg-grid {
+      background-size: 50px 50px;
+      background-image: 
+        linear-gradient(to right, var(--border) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+      mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
+      -webkit-mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
+    }
+
+    .bg-radial-glow {
+      background: radial-gradient(circle at 50% 50%, var(--glow) 0%, transparent 60%);
+    }
+
+    .glass-panel { 
+      background-color: var(--panel); 
+      backdrop-filter: blur(24px); 
+      -webkit-backdrop-filter: blur(24px); 
+      border: 1px solid var(--border);
+    }
+
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+    // --- LIB: STORAGE ---
+    const storage = {
+      get: (k, d) => { try { const i = window.localStorage.getItem(k); return i ? JSON.parse(i) : d; } catch (e) { return d; } },
+      set: (k, v) => { try { window.localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+      remove: (k) => { try { window.localStorage.removeItem(k); } catch (e) {} }
+    };
+    const idb = {
+      db: null,
+      async init() {
+        if (this.db) return this.db;
+        return new Promise((res, rej) => {
+          const req = indexedDB.open('flow_audio_db', 1);
+          req.onupgradeneeded = e => e.target.result.createObjectStore('tracks', { keyPath: 'id' });
+          req.onsuccess = e => { this.db = e.target.result; res(this.db); };
+          req.onerror = () => rej();
+        });
+      },
+      async saveTrack(t) { try { const db = await this.init(); return new Promise(res => { const tx = db.transaction('tracks', 'readwrite'); tx.objectStore('tracks').put(t); tx.oncomplete = () => res(); }); } catch(e){} },
+      async getAllTracks() { try { const db = await this.init(); return new Promise(res => { const tx = db.transaction('tracks', 'readonly'); const r = tx.objectStore('tracks').getAll(); r.onsuccess = () => res(r.result || []); }); } catch(e){ return []; } },
+      async deleteTrack(id) { try { const db = await this.init(); return new Promise(res => { const tx = db.transaction('tracks', 'readwrite'); tx.objectStore('tracks').delete(id); tx.oncomplete = () => res(); }); } catch(e){} },
+      async clearAll() { try { const db = await this.init(); return new Promise(res => { const tx = db.transaction('tracks', 'readwrite'); tx.objectStore('tracks').clear(); tx.oncomplete = () => res(); }); } catch(e){} }
+    };
+
+    // --- LIB: AMBIENCE ---
+    function playChime(type = 'sine') {
+      if (type === 'silent') return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator(); const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        if (type === 'digital') { osc.type = 'square'; osc.frequency.setValueAtTime(600, ctx.currentTime); gain.gain.setValueAtTime(0, ctx.currentTime); gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.05); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5); osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.5); }
+        else if (type === 'bell') { osc.type = 'sine'; osc.frequency.setValueAtTime(1200, ctx.currentTime); gain.gain.setValueAtTime(0, ctx.currentTime); gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.02); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2); osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 2); }
+        else { osc.type = 'sine'; osc.frequency.setValueAtTime(800, ctx.currentTime); gain.gain.setValueAtTime(0, ctx.currentTime); gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5); osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 1.5); }
+      } catch(e) {}
+    }
+    class AmbienceGenerator {
+      constructor(ctx, dest) { this.ctx = ctx; this.dest = dest; this.nodes = {}; this.gains = {}; }
+      startAll() { if (this.started) return; this.started = true; this._cBN(); this._cR(); this._cH(); this._cDO(); }
+      setVolume(t, v) { if (this.gains[t]) this.gains[t].gain.setTargetAtTime(v, this.ctx.currentTime, 0.1); }
+      _cBN() { const sz = 2*this.ctx.sampleRate; const b = this.ctx.createBuffer(1, sz, this.ctx.sampleRate); const o = b.getChannelData(0); let l = 0; for (let i=0; i<sz; i++){ const w=Math.random()*2-1; o[i]=(l+(0.02*w))/1.02; l=o[i]; o[i]*=3.5; } const n=this.ctx.createBufferSource(); n.buffer=b; n.loop=true; const g=this.ctx.createGain(); g.gain.value=0; n.connect(g).connect(this.dest); n.start(); this.nodes.brown=n; this.gains.brown=g; }
+      _cR() { const sz = 2*this.ctx.sampleRate; const b = this.ctx.createBuffer(1, sz, this.ctx.sampleRate); const o = b.getChannelData(0); for (let i=0; i<sz; i++) o[i]=Math.random()*2-1; const n=this.ctx.createBufferSource(); n.buffer=b; n.loop=true; const f=this.ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1000; f.Q.value=0.5; const g=this.ctx.createGain(); g.gain.value=0; n.connect(f).connect(g).connect(this.dest); n.start(); this.nodes.rain=n; this.gains.rain=g; }
+      _cH() { const o=this.ctx.createOscillator(); o.type='sine'; o.frequency.value=55; const g=this.ctx.createGain(); g.gain.value=0; o.connect(g).connect(this.dest); o.start(); this.nodes.hum=o; this.gains.hum=g; }
+      _cDO() { const o1=this.ctx.createOscillator(); o1.type='sine'; o1.frequency.value=200; const o2=this.ctx.createOscillator(); o2.type='sine'; o2.frequency.value=202; const m=this.ctx.createChannelMerger(2); o1.connect(m,0,0); o2.connect(m,0,1); const g=this.ctx.createGain(); g.gain.value=0; m.connect(g).connect(this.dest); o1.start(); o2.start(); this.nodes.osc={o1,o2}; this.gains.osc=g; }
+    }
+
+    // --- HOOKS ---
+    function usePersistentState(key, init) {
+      const [val, setVal] = useState(() => storage.get(key, init));
+      useEffect(() => { storage.set(key, val); }, [key, val]);
+      return [val, setVal];
+    }
+
+    function useTimer() {
+      const [settings, setSettings] = usePersistentState('flow_settings', { pomodoroFocus: 25, pomodoroShort: 5, pomodoroLong: 15, autoStart: false, strictMode: false, timerMode: 'pomodoro', accentColor: '#3b82f6', chime: 'digital', intentionPrompt: true });
+      const [stats, setStats] = usePersistentState('flow_stats', { history: {}, currentStreak: 0, longestStreak: 0, lastDate: null, totalSessions: 0 });
+      const [isRunning, setIsRunning] = useState(false); const [phase, setPhase] = useState('focus'); const [mode, setMode] = useState(settings.timerMode);
+      const [time, setTime] = useState(settings.pomodoroFocus * 60); const [duration, setDuration] = useState(settings.pomodoroFocus * 60); const [focusCount, setFocusCount] = useState(0);
+      const targetRef = useRef(null); const startRef = useRef(null); const lastTickRef = useRef(Date.now()); const pendRef = useRef(0);
+      
+      useEffect(() => { if (!isRunning) { setMode(settings.timerMode); if (settings.timerMode === 'pomodoro') { setPhase('focus'); setDuration(settings.pomodoroFocus * 60); setTime(settings.pomodoroFocus * 60); } else { setPhase('focus'); setDuration(0); setTime(0); } } }, [settings.timerMode, settings.pomodoroFocus, isRunning]);
+      
+      const complete = useCallback(() => {
+        playChime(settings.chime); 
+        if (mode === 'pomodoro') {
+          if (phase === 'focus') { 
+            const c = focusCount + 1; setFocusCount(c); 
+            setStats(s => ({...s, totalSessions: (s.totalSessions || 0) + 1}));
+            if (c % 4 === 0) { setPhase('longBreak'); const d = settings.pomodoroLong * 60; setDuration(d); setTime(d); if(settings.autoStart) targetRef.current = Date.now() + d * 1000; else setIsRunning(false); } 
+            else { setPhase('shortBreak'); const d = settings.pomodoroShort * 60; setDuration(d); setTime(d); if(settings.autoStart) targetRef.current = Date.now() + d * 1000; else setIsRunning(false); } 
+          }
+          else { setPhase('focus'); const d = settings.pomodoroFocus * 60; setDuration(d); setTime(d); if(settings.autoStart) targetRef.current = Date.now() + d * 1000; else setIsRunning(false); }
+        } else if (mode === 'flowtime' && phase === 'flowBreak') { setPhase('focus'); setDuration(0); setTime(0); if(settings.autoStart) startRef.current = Date.now(); else setIsRunning(false); }
+      }, [mode, phase, focusCount, settings, setStats]);
+
+      const tick = useCallback(() => {
+        const n = Date.now(); const del = (n - lastTickRef.current) / 1000; lastTickRef.current = n; if (!isRunning) return;
+        if (phase === 'focus') { pendRef.current += del; if (pendRef.current >= 60) { const m = Math.floor(pendRef.current / 60); pendRef.current -= (m * 60); const d = new Date().toDateString(); setStats(s => { const h = { ...s.history, [d]: (s.history[d] || 0) + m }; let str = s.currentStreak; let lng = s.longestStreak; if (s.lastDate !== d) { const y = new Date(); y.setDate(y.getDate() - 1); if (s.lastDate === y.toDateString()) str += 1; else str = 1; lng = Math.max(lng, str); } return { ...s, history: h, currentStreak: str, longestStreak: lng, lastDate: d }; }); } }
+        if (mode === 'stopwatch' || (mode === 'flowtime' && phase === 'focus')) { setTime(Math.floor((n - startRef.current) / 1000)); }
+        else { const r = Math.max(0, Math.floor((targetRef.current - n) / 1000)); setTime(r); if (r <= 0) complete(); }
+      }, [isRunning, mode, phase, complete, setStats]);
+
+      useEffect(() => { lastTickRef.current = Date.now(); if (isRunning) { const i = setInterval(tick, 200); return () => clearInterval(i); } }, [isRunning, tick]);
+      const toggleTimer = () => { lastTickRef.current = Date.now(); if (isRunning) setIsRunning(false); else { if (mode === 'stopwatch' || (mode === 'flowtime' && phase === 'focus')) startRef.current = Date.now() - time * 1000; else targetRef.current = Date.now() + time * 1000; setIsRunning(true); } };
+      const resetTimer = () => { setIsRunning(false); pendRef.current = 0; if (mode === 'flowtime' && phase === 'focus' && time > 0) { const b = Math.max(1, Math.floor(time / 5)); setPhase('flowBreak'); setDuration(b); setTime(b); } else if (mode === 'pomodoro') { let d = settings.pomodoroFocus * 60; if (phase === 'shortBreak') d = settings.pomodoroShort * 60; else if (phase === 'longBreak') d = settings.pomodoroLong * 60; setDuration(d); setTime(d); } else { setTime(0); setDuration(0); if (mode === 'flowtime') setPhase('focus'); } };
+      
+      useEffect(() => { document.title = `${Math.floor(time / 60).toString().padStart(2, '0')}:${(time % 60).toString().padStart(2, '0')} - Flow`; }, [time]);
+      return { time, duration, phase, mode, focusCount, isRunning, isStrict: settings.strictMode, settings, setSettings, stats, setStats, toggleTimer, resetTimer };
+    }
+
+    function useTasks() {
+      const [tasks, setTasks] = usePersistentState('flow_tasks', []); 
+      const [activeTaskId, setActiveTaskId] = usePersistentState('flow_active_task_id', null); 
+      const [selectedTag, setSelectedTag] = useState(null);
+      const tags = useMemo(() => Array.from(new Set(tasks.flatMap(t => t.tags))), [tasks]);
+      const addTask = useCallback((text) => { if (!text.trim()) return; let t = text, tg = [], e = 0, p = false; const tm = t.match(/#\w+/g); if (tm) { tg = tm.map(x => x.substring(1)); t = t.replace(/#\w+/g, ''); } if (t.includes('!')) { p = true; t = t.replace(/!/g, ''); } const em = t.match(/x(\d+)/); if (em) { e = parseInt(em[1], 10); t = t.replace(/x\d+/, ''); } const nt = { id: Date.now().toString(), title: t.trim().replace(/\s+/g, ' ') || 'Untitled', tags: tg, estimate: e, priority: p, completed: false, sessions: 0, date: new Date().toDateString() }; setTasks(pr => [nt, ...pr]); if (!activeTaskId) setActiveTaskId(nt.id); }, [setTasks, activeTaskId, setActiveTaskId]);
+      const toggleTask = useCallback((id) => setTasks(pr => pr.map(t => { if (t.id === id) { if (!t.completed && activeTaskId === id) setActiveTaskId(null); return { ...t, completed: !t.completed }; } return t; })), [setTasks, activeTaskId, setActiveTaskId]);
+      const deleteTask = useCallback((id) => { setTasks(pr => pr.filter(t => t.id !== id)); if (activeTaskId === id) setActiveTaskId(null); }, [setTasks, activeTaskId, setActiveTaskId]);
+      const updateTask = useCallback((id, u) => setTasks(pr => pr.map(t => t.id === id ? { ...t, ...u } : t)), [setTasks]);
+      const addSessionToActive = useCallback(() => { if (activeTaskId) setTasks(pr => pr.map(t => t.id === activeTaskId ? { ...t, sessions: t.sessions + 1 } : t)); }, [activeTaskId, setTasks]);
+      const clearCompleted = useCallback(() => setTasks(pr => pr.filter(t => !t.completed)), [setTasks]);
+      const reorderTasks = useCallback((d, h) => setTasks(pr => { const n = [...pr]; const [r] = n.splice(d, 1); n.splice(h, 0, r); return n; }), [setTasks]);
+      return { tasks, tags, selectedTag, setSelectedTag, activeTaskId, setActiveTaskId, activeTask: useMemo(() => tasks.find(t => t.id === activeTaskId), [tasks, activeTaskId]), addTask, toggleTask, deleteTask, updateTask, addSessionToActive, clearCompleted, reorderTasks };
+    }
+
+    function useAudio(isBreak) {
+      const [settings, setSettings] = usePersistentState('flow_audio_settings', { lowerVolOnBreak: true, masterVolume: 0.8, musicVolume: 1.0, ambience: { brown: 0, rain: 0, hum: 0, osc: 0 } });
+      const [playlist, setPlaylist] = useState([]); const [currentIndex, setCurrentIndex] = useState(0); const [isPlaying, setIsPlaying] = useState(false); const [isLooping, setIsLooping] = useState(false); const [isShuffling, setIsShuffling] = useState(false);
+      const ctxRef = useRef(null), ambGenRef = useRef(null), audioRefA = useRef(new Audio()), audioRefB = useRef(new Audio()), activeAudio = useRef('A'), masterGainRef = useRef(null), musicGainRef = useRef(null), gainARef = useRef(null), gainBRef = useRef(null);
+      const initAudio = useCallback(() => { if (ctxRef.current) return; const ctx = new (window.AudioContext || window.webkitAudioContext)(); ctxRef.current = ctx; masterGainRef.current = ctx.createGain(); masterGainRef.current.connect(ctx.destination); musicGainRef.current = ctx.createGain(); musicGainRef.current.connect(masterGainRef.current); const nA = ctx.createMediaElementSource(audioRefA.current); const nB = ctx.createMediaElementSource(audioRefB.current); gainARef.current = ctx.createGain(); gainBRef.current = ctx.createGain(); nA.connect(gainARef.current).connect(musicGainRef.current); nB.connect(gainBRef.current).connect(musicGainRef.current); ambGenRef.current = new AmbienceGenerator(ctx, masterGainRef.current); ambGenRef.current.startAll(); Object.entries(settings.ambience).forEach(([k, v]) => ambGenRef.current.setVolume(k, v)); }, [settings.ambience]);
+      useEffect(() => { idb.getAllTracks().then(t => setPlaylist(t.map(x => ({ ...x, url: URL.createObjectURL(x.file) })))); return () => playlist.forEach(x => { if (x.url) URL.revokeObjectURL(x.url); }); }, []);
+      const addFiles = useCallback(async (f) => { const v = Array.from(f).filter(x => x.type.startsWith('audio/')); const n = []; for (const file of v) { const t = { id: Date.now().toString()+Math.random(), file, name: file.name }; await idb.saveTrack(t); t.url = URL.createObjectURL(file); n.push(t); } setPlaylist(p => [...p, ...n]); }, []);
+      const removeTrack = useCallback(async (id) => { await idb.deleteTrack(id); setPlaylist(p => { const t = p.find(x => x.id === id); if (t?.url) URL.revokeObjectURL(t.url); return p.filter(x => x.id !== id); }); }, []);
+      const playIndex = useCallback((idx) => { if (!ctxRef.current) initAudio(); if (ctxRef.current.state === 'suspended') ctxRef.current.resume(); if (playlist.length === 0 || !playlist[idx]) return; setCurrentIndex(idx); setIsPlaying(true); const now = ctxRef.current.currentTime; const fd = 1.5; if (activeAudio.current === 'A') { activeAudio.current = 'B'; audioRefB.current.src = playlist[idx].url; audioRefB.current.play().catch(()=>{}); gainBRef.current.gain.setValueAtTime(0, now); gainBRef.current.gain.linearRampToValueAtTime(1, now + fd); gainARef.current.gain.setValueAtTime(gainARef.current.gain.value, now); gainARef.current.gain.linearRampToValueAtTime(0, now + fd); setTimeout(() => { if (activeAudio.current === 'B') audioRefA.current.pause(); }, fd * 1000); } else { activeAudio.current = 'A'; audioRefA.current.src = playlist[idx].url; audioRefA.current.play().catch(()=>{}); gainARef.current.gain.setValueAtTime(0, now); gainARef.current.gain.linearRampToValueAtTime(1, now + fd); gainBRef.current.gain.setValueAtTime(gainBRef.current.gain.value, now); gainBRef.current.gain.linearRampToValueAtTime(0, now + fd); setTimeout(() => { if (activeAudio.current === 'A') audioRefB.current.pause(); }, fd * 1000); } }, [playlist, initAudio]);
+      const togglePlay = useCallback(() => { if (!ctxRef.current) initAudio(); if (ctxRef.current.state === 'suspended') ctxRef.current.resume(); if (playlist.length === 0) return; if (isPlaying) { if (activeAudio.current === 'A') audioRefA.current.pause(); else audioRefB.current.pause(); setIsPlaying(false); } else { if (activeAudio.current === 'A' && !audioRefA.current.src) playIndex(currentIndex); else if (activeAudio.current === 'B' && !audioRefB.current.src) playIndex(currentIndex); else { if (activeAudio.current === 'A') audioRefA.current.play().catch(()=>{}); else audioRefB.current.play().catch(()=>{}); } setIsPlaying(true); } }, [isPlaying, playlist.length, currentIndex, playIndex, initAudio]);
+      const nextTrack = useCallback(() => { if (playlist.length === 0) return; playIndex(isShuffling ? Math.floor(Math.random() * playlist.length) : (currentIndex + 1 >= playlist.length ? 0 : currentIndex + 1)); }, [currentIndex, playlist.length, isShuffling, playIndex]);
+      const prevTrack = useCallback(() => { if (playlist.length === 0) return; playIndex(currentIndex - 1 < 0 ? playlist.length - 1 : currentIndex - 1); }, [currentIndex, playlist.length, playIndex]);
+      useEffect(() => { const e = () => { if (isLooping) { if (activeAudio.current === 'A') { audioRefA.current.currentTime = 0; audioRefA.current.play(); } else { audioRefB.current.currentTime = 0; audioRefB.current.play(); } } else nextTrack(); }; const A = audioRefA.current, B = audioRefB.current; A.addEventListener('ended', e); B.addEventListener('ended', e); return () => { A.removeEventListener('ended', e); B.removeEventListener('ended', e); }; }, [isLooping, nextTrack]);
+      useEffect(() => { if (masterGainRef.current && ctxRef.current) masterGainRef.current.gain.setTargetAtTime(settings.masterVolume * (isBreak && settings.lowerVolOnBreak ? 0.3 : 1), ctxRef.current.currentTime, 0.5); }, [isBreak, settings.lowerVolOnBreak, settings.masterVolume]);
+      useEffect(() => { if (musicGainRef.current && ctxRef.current) musicGainRef.current.gain.setTargetAtTime(settings.musicVolume, ctxRef.current.currentTime, 0.1); }, [settings.musicVolume]);
+      const updateAmbience = useCallback((t, v) => { if (!ctxRef.current) initAudio(); if (ctxRef.current.state === 'suspended') ctxRef.current.resume(); setSettings(p => ({ ...p, ambience: { ...p.ambience, [t]: v } })); if (ambGenRef.current) ambGenRef.current.setVolume(t, v); }, [setSettings, initAudio]);
+      return { playlist, currentTrack: playlist[currentIndex], isPlaying, isLooping, isShuffling, settings, setSettings, addFiles, removeTrack, togglePlay, nextTrack, prevTrack, setIsLooping, setIsShuffling, updateAmbience, playIndex, initAudio };
+    }
+
+    // --- COMPONENTS ---
+    function TimerRing({ progress, accentColor }) {
+      const r = 180; const s = 2; const nR = r - s * 2; const c = nR * 2 * Math.PI; const o = c - progress * c;
+      return ( 
+        <div className="relative flex items-center justify-center"> 
+          {/* Tech rotating background rings */}
+          <svg height={r*2} width={r*2} className="absolute animate-[spin_40s_linear_infinite] opacity-30">
+            <circle className="stroke-[var(--border-light)]" fill="transparent" strokeWidth={1} strokeDasharray="4 12" r={nR + 16} cx={r} cy={r} />
+            <circle className="stroke-[var(--border-light)]" fill="transparent" strokeWidth={1} strokeDasharray="2 8" r={nR - 16} cx={r} cy={r} />
+          </svg>
+          <svg height={r*2} width={r*2} className="-rotate-90 z-10"> 
+            <circle className="stroke-[var(--border)]" fill="transparent" strokeWidth={s} r={nR} cx={r} cy={r} /> 
+            <circle className="transition-all duration-500 ease-linear" stroke={accentColor} fill="transparent" strokeWidth={s*2} strokeDasharray={c + ' ' + c} style={{ strokeDashoffset: o, filter: `drop-shadow(0 0 10px ${accentColor})` }} strokeLinecap="round" r={nR} cx={r} cy={r} /> 
+          </svg> 
+        </div> 
+      )
+    }
+
+    // --- MAIN SCREEN (HUD) ---
+    function MainScreen({ timer, taskHook, audioHook, isZen }) {
+      const { time, duration, phase, mode, focusCount, isRunning, isStrict, settings, toggleTimer, resetTimer } = timer;
+      const hRef = useRef(null); const [isH, setIsH] = useState(false);
+      const [quickTask, setQuickTask] = useState('');
+
+      const pDn = (e) => { if (e.button && e.button !== 0) return; if (!isRunning) return toggleTimer(); if (isStrict) { setIsH(true); hRef.current = setTimeout(() => { setIsH(false); toggleTimer(); }, 3000); } else toggleTimer(); };
+      const pUp = () => { if (isStrict && isH) { clearTimeout(hRef.current); setIsH(false); } };
+      const p = duration > 0 && mode !== 'stopwatch' && !(mode === 'flowtime' && phase === 'focus') ? time / duration : 1;
+      
+      const phaseText = phase === 'focus' ? 'FOCUS' : phase === 'shortBreak' ? 'SHORT BREAK' : phase === 'longBreak' ? 'LONG BREAK' : 'FLOW BREAK';
+      
+      // Get up to 3 upcoming tasks
+      const upcomingTasks = taskHook.tasks.filter(t => !t.completed).slice(0, 3);
+
+      return (
+        <div className="flex-1 flex w-full h-full relative overflow-hidden max-w-7xl mx-auto px-4 py-8 items-center justify-center">
+          
+          {/* LEFT COLUMN: Mini To-Do Dashboard (Hidden on Mobile) */}
+          <div className={`hidden lg:flex flex-col w-72 absolute left-8 top-1/2 -translate-y-1/2 space-y-6 transition-all duration-1000 ${isZen ? 'opacity-0 -translate-x-10' : 'opacity-100 translate-x-0'}`}>
+            <div className="glass-panel p-5 rounded-2xl">
+              <div className="text-xs text-muted uppercase tracking-[0.2em] font-medium mb-4 flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={settings.accentColor} strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                Up Next
+              </div>
+              {upcomingTasks.length > 0 ? (
+                <div className="space-y-3">
+                  {upcomingTasks.map(t => (
+                    <div key={t.id} onClick={() => taskHook.setActiveTaskId(t.id)} className={`text-sm py-2 px-3 rounded-lg border cursor-pointer transition-colors ${taskHook.activeTaskId === t.id ? 'border-transparent' : 'border-transparent hover:bg-[var(--border)]'}`} style={taskHook.activeTaskId === t.id ? { backgroundColor: settings.accentColor + '20', color: settings.accentColor } : { color: 'var(--text-muted)' }}>
+                      <div className="truncate font-medium">{t.title}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs text-muted opacity-50 py-4 text-center border border-dashed border-[var(--border)] rounded-lg">No pending tasks</div>
+              )}
+            </div>
+            
+            <div className="glass-panel p-5 rounded-2xl">
+               <div className="text-xs text-muted uppercase tracking-[0.2em] font-medium mb-2">Telemetry</div>
+               <div className="flex justify-between items-end mt-4">
+                 <div className="text-3xl font-light font-mono" style={{ color: settings.accentColor }}>{timer.stats.totalSessions || 0}</div>
+                 <div className="text-xs text-muted pb-1">Total Sessions</div>
+               </div>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: Mini Audio Dashboard (Hidden on Mobile) */}
+          <div className={`hidden lg:flex flex-col w-72 absolute right-8 top-1/2 -translate-y-1/2 space-y-6 transition-all duration-1000 ${isZen ? 'opacity-0 translate-x-10' : 'opacity-100 translate-x-0'}`}>
+            <div className="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+              <div className="absolute inset-0 opacity-10 blur-2xl transition-all" style={{ backgroundColor: audioHook.isPlaying ? settings.accentColor : 'transparent' }}></div>
+              <div className="text-xs text-muted uppercase tracking-[0.2em] font-medium mb-4 flex items-center gap-2 relative z-10">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={settings.accentColor} strokeWidth="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                Audio Link
+              </div>
+              <div className="text-sm font-medium truncate mb-4 relative z-10 text-[var(--text)]">{audioHook.currentTrack?.name || 'Silence'}</div>
+              <div className="flex items-center gap-4 relative z-10">
+                <button onClick={audioHook.prevTrack} className="text-muted hover:text-white transition-colors"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 20L9 12l10-8v16zM5 19V5h2v14H5z"/></svg></button>
+                <button onClick={audioHook.togglePlay} className="w-10 h-10 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-transform">
+                  {audioHook.isPlaying ? <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg> : <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg>}
+                </button>
+                <button onClick={audioHook.nextTrack} className="text-muted hover:text-white transition-colors"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M5 4l10 8-10 8V4zM19 5v14h-2V5h2z"/></svg></button>
+              </div>
+            </div>
+            
+            <div className="glass-panel p-5 rounded-2xl">
+              <div className="text-xs text-muted uppercase tracking-[0.2em] font-medium mb-3">Master Volume</div>
+              <input type="range" min="0" max="1" step="0.01" value={audioHook.settings.masterVolume} onChange={(e) => audioHook.setSettings(x => ({...x, masterVolume: parseFloat(e.target.value)}))} className="w-full accent-white" />
+            </div>
+          </div>
+
+          {/* CENTER: Main Timer HUD */}
+          <div className="relative flex flex-col items-center justify-center -mt-16 sm:-mt-10 z-10">
+            
+            {/* Status Top bar */}
+            <div className={`absolute -top-16 flex flex-col items-center gap-1 transition-all duration-700 ${isZen ? 'opacity-0 -translate-y-4' : 'opacity-100 translate-y-0'}`}>
+              <div className="text-[10px] text-muted tracking-[0.3em] font-mono uppercase bg-[var(--panel)] px-3 py-1 rounded-full border border-[var(--border)]">
+                {mode === 'pomodoro' ? `Session ${focusCount % 4 || 4} of 4` : mode.toUpperCase()}
+              </div>
+              <div className="text-sm tracking-[0.2em] font-semibold mt-2" style={{ color: settings.accentColor }}>{phaseText}</div>
+            </div>
+
+            <div className="relative flex items-center justify-center">
+              <TimerRing progress={p} accentColor={settings.accentColor} />
+              <div className={`absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-all duration-700 ${isZen ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+                <div className="text-7xl sm:text-8xl font-light font-mono tabular-nums tracking-tighter" style={{ textShadow: `0 0 40px ${settings.accentColor}50` }}>
+                  {`${Math.floor(time / 60).toString().padStart(2, '0')}:${(time % 60).toString().padStart(2, '0')}`}
+                </div>
+              </div>
+            </div>
+            
+            <div className={`mt-10 flex flex-col items-center transition-all duration-700 w-full max-w-md ${isZen ? 'opacity-0 translate-y-4 pointer-events-none' : 'opacity-100 translate-y-0'}`}>
+              
+              {/* Active Task or Quick Add */}
+              <div className="w-full mb-8">
+                {taskHook.activeTask ? (
+                  <div className="text-center">
+                    <div className="text-sm font-medium tracking-wide flex items-center justify-center gap-3 bg-[var(--panel)] border border-[var(--border)] px-5 py-2.5 rounded-full">
+                      <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: isRunning ? settings.accentColor : 'var(--text-muted)' }}></span>
+                      <span className="truncate max-w-[200px]">{taskHook.activeTask.title}</span>
+                      <button onClick={() => taskHook.setActiveTaskId(null)} className="ml-2 text-muted hover:text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                    </div>
+                  </div>
+                ) : (
+                  <input 
+                    type="text" 
+                    placeholder="Type task & press Enter..." 
+                    value={quickTask}
+                    onChange={e => setQuickTask(e.target.value)}
+                    onKeyDown={e => { if(e.key==='Enter' && quickTask.trim()){ taskHook.addTask(quickTask); setQuickTask(''); } }}
+                    className="w-full bg-transparent border-b border-[var(--border)] text-center pb-2 text-sm focus:outline-none focus:border-[var(--text)] transition-colors placeholder:text-muted placeholder:tracking-widest"
+                  />
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-4 sm:gap-6 justify-center">
+                {!isStrict ? ( 
+                  <button onClick={resetTimer} className={`px-5 py-2.5 text-xs tracking-widest font-semibold uppercase rounded-full border transition-all ${isRunning || time < duration || (mode!=='pomodoro' && time>0) ? 'opacity-100 pointer-events-auto border-[var(--border)] text-muted hover:text-white hover:bg-[var(--hover)]' : 'opacity-0 pointer-events-none'}`}>
+                    Reset
+                  </button> 
+                ) : ( <div className="w-[88px]" /> )}
+                
+                <button 
+                  onPointerDown={pDn} onPointerUp={pUp} onPointerLeave={pUp} 
+                  className={`px-8 py-3.5 text-sm tracking-[0.2em] font-bold uppercase rounded-full transition-all duration-300 ${isH ? 'scale-95 opacity-80' : 'hover:scale-105'}`} 
+                  style={{ 
+                    backgroundColor: isRunning ? 'transparent' : settings.accentColor, 
+                    color: isRunning ? settings.accentColor : 'var(--bg-base)',
+                    border: `1px solid ${settings.accentColor}`,
+                    boxShadow: isRunning ? 'none' : `0 0 20px ${settings.accentColor}60`
+                  }}
+                >
+                  {isRunning ? 'Pause' : 'Start'}
+                </button>
+                
+                <button onClick={() => complete()} className={`px-5 py-2.5 text-xs tracking-widest font-semibold uppercase rounded-full border transition-all ${isRunning ? 'opacity-100 pointer-events-auto border-[var(--border)] text-muted hover:text-white hover:bg-[var(--hover)]' : 'opacity-0 pointer-events-none'}`}>
+                  Skip
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      );
+    }
+
+    function Panel({ isOpen, onClose, title, children }) {
+      const pRef = useRef();
+      useEffect(() => { const hk = (e) => { if (e.key === 'Escape' && isOpen) onClose(); }; window.addEventListener('keydown', hk); return () => window.removeEventListener('keydown', hk); }, [isOpen, onClose]);
+      const hb = (e) => { if (pRef.current && !pRef.current.contains(e.target)) onClose(); };
+      return (
+        <div className={`fixed inset-0 z-50 transition-all duration-500 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={hb}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" />
+          <div ref={pRef} className={`fixed sm:absolute sm:right-6 sm:top-6 sm:bottom-28 bottom-0 w-full sm:w-[420px] glass-panel shadow-2xl sm:rounded-2xl rounded-t-3xl transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] transform h-[85vh] sm:h-auto flex flex-col ${isOpen ? 'translate-y-0 sm:translate-x-0' : 'translate-y-full sm:translate-y-0 sm:translate-x-[120%]'}`}>
+            <div className="w-12 h-1.5 bg-gray-500/30 rounded-full mx-auto mt-4 sm:hidden shrink-0" />
+            <div className="flex items-center justify-between p-6 border-b border-[var(--border)] shrink-0">
+              <h2 className="text-lg font-medium tracking-widest uppercase text-[var(--text)]">{title}</h2>
+              <button onClick={onClose} className="p-2 text-muted bg-[var(--border)] rounded-full hover:text-[var(--text)] hover:bg-[var(--hover)] transition-all">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">{children}</div>
+          </div>
+        </div>
+      );
+    }
+
+    // Subcomponents (Tasks, Music, Stats, Settings)
+    function TasksPanel({ taskHook, accentColor }) {
+      const { tasks, tags, selectedTag, setSelectedTag, activeTaskId, setActiveTaskId, addTask, toggleTask, deleteTask, updateTask, clearCompleted, reorderTasks } = taskHook;
+      const [val, setVal] = useState(''); const [sD, setSD] = useState(false); const [cM, setCM] = useState(null);
+      const dI = useRef(), dO = useRef();
+      const hK = (e) => { if (e.key === 'Enter') { addTask(val); setVal(''); } };
+      const ds = (e, i) => { dI.current = i; e.dataTransfer.effectAllowed = 'move'; e.target.style.opacity = '0.4'; };
+      const de = (e) => { e.target.style.opacity = '1'; if (dI.current !== null && dO.current !== null && dI.current !== dO.current) reorderTasks(dI.current, dO.current); dI.current = null; dO.current = null; };
+      const rC = (e, t) => { e.preventDefault(); setCM({ x: e.clientX, y: e.clientY, task: t }); };
+      const inc = tasks.filter(t => !t.completed && (!selectedTag || t.tags.includes(selectedTag))); const cmp = tasks.filter(t => t.completed && (!selectedTag || t.tags.includes(selectedTag)));
+      return (
+        <div className="flex flex-col h-full relative" onClick={() => setCM(null)}>
+          <div className="flex gap-2 mb-4">
+            <input type="text" placeholder="Add task... (#tag, x3, !)" className="w-full bg-[var(--border)] border border-transparent rounded-xl px-4 py-4 text-sm focus:outline-none transition-all placeholder:text-gray-500 focus:border-white/20" value={val} onChange={(e) => setVal(e.target.value)} onKeyDown={hK} />
+            <button onClick={()=>{addTask(val); setVal('');}} className="px-5 rounded-xl font-bold transition-colors" style={{ backgroundColor: accentColor, color: 'var(--bg-base)' }}>+</button>
+          </div>
+          {tags.length >= 2 && ( <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide shrink-0"> <button onClick={() => setSelectedTag(null)} className={`px-4 py-1.5 rounded-full text-xs transition-colors ${!selectedTag ? '' : 'bg-[var(--border)] text-muted hover-panel'}`} style={!selectedTag ? { backgroundColor: accentColor + '33', color: accentColor } : {}}>All</button> {tags.map(t => ( <button key={t} onClick={() => setSelectedTag(t)} className={`px-4 py-1.5 rounded-full text-xs transition-colors ${selectedTag === t ? '' : 'bg-[var(--border)] text-muted hover-panel'}`} style={selectedTag === t ? { backgroundColor: accentColor + '33', color: accentColor } : {}}>#{t}</button> ))} </div> )}
+          <div className="flex-1 overflow-y-auto space-y-3">
+            {inc.map((t, i) => ( <div key={t.id} draggable onDragStart={(e) => ds(e, i)} onDragEnter={() => dO.current = i} onDragEnd={de} onContextMenu={(e) => rC(e, t)} onClick={() => setActiveTaskId(t.id)} className={`group flex items-center gap-4 p-4 rounded-xl border transition-all cursor-pointer ${activeTaskId === t.id ? '' : 'border-[var(--border)] hover-panel'}`} style={activeTaskId === t.id ? { borderColor: accentColor + '60', backgroundColor: accentColor + '10', boxShadow: `0 0 20px ${accentColor}15` } : {}}> <button onClick={(e) => { e.stopPropagation(); toggleTask(t.id); }} className="w-5 h-5 rounded-full border-2 border-gray-500 flex items-center justify-center shrink-0 transition-colors" style={activeTaskId === t.id ? { borderColor: accentColor } : {}} /> <div className="flex-1 min-w-0"> <div className="flex items-center gap-2"> {t.priority && <span className="text-red-400 text-xs font-bold">!</span>} <span className="text-sm truncate select-none font-medium">{t.title}</span> </div> <div className="flex items-center gap-2 mt-1"> {t.tags.map(tg => <span key={tg} className="text-[10px] text-muted tracking-wider">#{tg}</span>)} {(t.sessions > 0 || t.estimate > 0) && ( <div className="flex items-center gap-1.5"> {Array.from({ length: Math.max(t.sessions, t.estimate) }).map((_, j) => ( <div key={j} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: j < t.sessions ? accentColor : 'var(--border)', boxShadow: j < t.sessions ? `0 0 5px ${accentColor}` : '' }} /> ))} </div> )} </div> </div> <button onClick={(e) => { e.stopPropagation(); deleteTask(t.id); }} className="opacity-0 group-hover:opacity-100 p-2 bg-[var(--border)] rounded-full text-muted hover:text-red-400 transition-all"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button> </div> ))}
+            {cmp.length > 0 && ( <div className="pt-6"> <button onClick={() => setSD(!sD)} className="flex items-center gap-2 text-xs text-muted hover:text-[var(--text)] transition-colors w-full uppercase tracking-wider"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${sD ? 'rotate-90' : ''}`}><path d="M9 18l6-6-6-6"/></svg>Done today ({cmp.length})</button> {sD && ( <div className="mt-4 space-y-2"> {cmp.map(t => ( <div className="flex items-center gap-4 p-3 rounded-xl opacity-50 bg-[var(--border)]"> <button onClick={() => toggleTask(t.id)} className="w-5 h-5 rounded-full border border-gray-500 bg-gray-500 flex items-center justify-center shrink-0"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--bg-base)" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg></button> <span className="text-sm line-through truncate flex-1">{t.title}</span> </div> ))} <button onClick={clearCompleted} className="w-full py-3 rounded-xl text-xs text-muted border border-transparent hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 transition-all mt-4 font-bold uppercase tracking-widest">Clear completed</button> </div> )} </div> )}
+          </div>
+          {cM && ( <div className="fixed z-[100] bg-[var(--bg-base)] border border-[var(--border)] rounded-xl shadow-2xl py-2 w-48 overflow-hidden backdrop-blur-2xl" style={{ top: Math.min(cM.y, window.innerHeight - 150), left: Math.min(cM.x, window.innerWidth - 190) }} onClick={(e) => e.stopPropagation()}> <button onClick={() => { updateTask(cM.task.id, { priority: !cM.task.priority }); setCM(null); }} className="w-full text-left px-5 py-2.5 text-sm text-[var(--text)] hover-panel transition-colors">Toggle Priority</button> <button onClick={() => { const e = prompt("Set estimate:", cM.task.estimate); if (e !== null && !isNaN(e)) updateTask(cM.task.id, { estimate: parseInt(e, 10) }); setCM(null); }} className="w-full text-left px-5 py-2.5 text-sm text-[var(--text)] hover-panel transition-colors">Set Estimate</button> <button onClick={() => { deleteTask(cM.task.id); setCM(null); }} className="w-full text-left px-5 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors">Delete Task</button> </div> )}
+        </div>
+      );
+    }
+
+    function MusicPanel({ audioHook, accentColor }) {
+      const { playlist: pl, currentTrack: cT, isPlaying: iP, isLooping: iL, isShuffling: iS, settings: s, setSettings: ss, addFiles, removeTrack, togglePlay, nextTrack, prevTrack, setIsLooping, setIsShuffling, updateAmbience: uA, playIndex } = audioHook;
+      const fR = useRef();
+      return (
+        <div className="flex flex-col h-full space-y-6">
+          <div onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files); }} className="border border-dashed border-[var(--border-light)] rounded-2xl p-8 text-center hover-panel transition-all cursor-pointer bg-[var(--border)]" onClick={() => fR.current?.click()}><p className="text-sm text-[var(--text)] font-medium">Drag & drop audio files here</p><p className="text-xs text-muted mt-2 font-mono">.MP3 .WAV .OGG</p><input type="file" ref={fR} className="hidden" multiple accept="audio/*" onChange={(e) => addFiles(e.target.files)} /></div>
+          
+          <div className="bg-[var(--border)] p-5 rounded-2xl space-y-5 border border-[var(--border-light)] relative overflow-hidden">
+            <div className="absolute inset-0 opacity-10 blur-2xl pointer-events-none" style={{ backgroundColor: accentColor }}></div>
+            <div className="flex justify-between items-center text-sm relative z-10"><span className="truncate flex-1 font-semibold">{cT?.name || 'No track playing'}</span></div>
+            <div className="flex items-center justify-center gap-6 text-muted relative z-10">
+              <button onClick={() => setIsShuffling(!iS)} className="hover:text-[var(--text)] transition-colors" style={iS ? { color: accentColor, filter: `drop-shadow(0 0 5px ${accentColor})` } : {}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></button>
+              <button onClick={prevTrack} className="hover:text-[var(--text)] transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 20L9 12l10-8v16zM5 19V5h2v14H5z"/></svg></button>
+              <button onClick={togglePlay} className="w-14 h-14 flex items-center justify-center bg-[var(--text)] rounded-full text-[var(--bg-base)] transition-transform hover:scale-105 shadow-lg">{iP ? <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg> : <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg>}</button>
+              <button onClick={nextTrack} className="hover:text-[var(--text)] transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M5 4l10 8-10 8V4zM19 5v14h-2V5h2z"/></svg></button>
+              <button onClick={() => setIsLooping(!iL)} className="hover:text-[var(--text)] transition-colors" style={iL ? { color: accentColor, filter: `drop-shadow(0 0 5px ${accentColor})` } : {}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></button>
+            </div>
+          </div>
+
+          <div className="space-y-5 bg-[var(--border)] p-5 rounded-2xl border border-[var(--border)]">
+            <label className="flex items-center justify-between text-xs text-muted font-medium uppercase tracking-widest">Master Vol <input type="range" min="0" max="1" step="0.01" value={s.musicVolume} onChange={(e) => ss(x => ({...x, musicVolume: parseFloat(e.target.value)}))} className="w-32 accent-white" /></label>
+            <div className="pt-4 border-t border-[var(--border)] space-y-4">
+              <label className="flex items-center justify-between text-xs text-muted font-medium uppercase tracking-widest">Brown Noise <input type="range" min="0" max="1" step="0.01" value={s.ambience.brown} onChange={(e) => uA('brown', parseFloat(e.target.value))} className="w-32 accent-white" /></label>
+              <label className="flex items-center justify-between text-xs text-muted font-medium uppercase tracking-widest">Rain <input type="range" min="0" max="1" step="0.01" value={s.ambience.rain} onChange={(e) => uA('rain', parseFloat(e.target.value))} className="w-32 accent-white" /></label>
+              <label className="flex items-center justify-between text-xs text-muted font-medium uppercase tracking-widest">Soft Hum <input type="range" min="0" max="1" step="0.01" value={s.ambience.hum} onChange={(e) => uA('hum', parseFloat(e.target.value))} className="w-32 accent-white" /></label>
+              <label className="flex items-center justify-between text-xs text-muted font-medium uppercase tracking-widest">Slow Tone <input type="range" min="0" max="1" step="0.01" value={s.ambience.osc} onChange={(e) => uA('osc', parseFloat(e.target.value))} className="w-32 accent-white" /></label>
+            </div>
+            <div className="pt-4 border-t border-[var(--border)]">
+              <label className="flex items-center gap-3 text-sm cursor-pointer text-[var(--text)]"><input type="checkbox" checked={s.lowerVolOnBreak} onChange={(e) => ss(x => ({...x, lowerVolOnBreak: e.target.checked}))} className="w-4 h-4 rounded accent-white" />Lower volume during breaks</label>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-2">
+            {pl.map((t, i) => ( <div key={t.id} className="flex items-center justify-between p-3 rounded-xl group hover-panel transition-colors border border-transparent" style={cT?.id === t.id ? { borderColor: accentColor + '50', color: accentColor, backgroundColor: accentColor + '10' } : { color: 'var(--text-muted)', borderColor: 'var(--border)' }}> <button onClick={() => playIndex(i)} className="flex-1 text-left text-sm truncate px-2 font-medium">{t.name}</button> <button onClick={() => removeTrack(t.id)} className="opacity-0 group-hover:opacity-100 p-2 bg-[var(--border)] rounded-full hover:text-red-400 transition-all"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button> </div> ))}
+            {pl.length === 0 && <div className="text-center text-xs text-muted mt-8 uppercase tracking-widest">Playlist is empty</div>}
+          </div>
+        </div>
+      );
+    }
+
+    function StatsPanel({ stats, tasks, accentColor }) {
+      const tS = new Date().toDateString(); const mT = stats.history[tS] || 0;
+      const hm = []; const t = new Date(); for (let i = 83; i >= 0; i--) { const d = new Date(t); d.setDate(d.getDate() - i); const ds = d.toDateString(); hm.push({ date: ds, mins: stats.history[ds] || 0 }); }
+      const l7 = hm.slice(-7); const mM = Math.max(1, ...l7.map(d => d.mins));
+      const tB = {}; tasks.filter(x => x.completed).forEach(x => x.tags.forEach(tg => { tB[tg] = (tB[tg] || 0) + 1; })); const tL = Object.entries(tB).sort((a,b) => b[1] - a[1]);
+      return (
+        <div className="flex flex-col h-full space-y-8">
+          <div className="text-center space-y-3 bg-[var(--border)] p-8 rounded-2xl border border-[var(--border-light)] relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 opacity-20 blur-3xl" style={{ backgroundColor: accentColor }}></div>
+            <div className="text-xs text-muted uppercase tracking-[0.3em] font-bold">Focus Today</div>
+            <div className="text-7xl font-light tracking-tighter font-mono" style={{ color: accentColor, textShadow: `0 0 20px ${accentColor}40` }}>{mT}<span className="text-2xl text-muted ml-2 font-sans">m</span></div>
+            <div className="text-sm font-medium pt-2 flex items-center justify-center gap-4"><span>Streak: {stats.currentStreak} 🔥</span> <span className="text-muted">Max: {stats.longestStreak}</span></div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="text-xs text-muted uppercase tracking-[0.2em] font-medium mb-3">12 Weeks</div>
+            <div className="grid grid-rows-7 grid-flow-col gap-1.5 w-full max-w-[320px] mx-auto">
+              {hm.map((d, i) => { const int = d.mins === 0 ? 0 : Math.min(1, 0.2 + (d.mins / 120) * 0.8); return <div key={i} className="w-3 h-3 rounded-sm bg-[var(--border)] transition-all hover:scale-125" style={int > 0 ? { backgroundColor: accentColor, opacity: int, boxShadow: `0 0 5px ${accentColor}80` } : {}} title={`${d.mins}m on ${d.date}`} /> })}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="text-xs text-muted uppercase tracking-[0.2em] font-medium mb-3">Last 7 Days</div>
+            <div className="flex items-end justify-between h-32 w-full max-w-[320px] mx-auto border-b border-[var(--border)] pb-3">
+              {l7.map((d, i) => { const h = (d.mins / mM) * 100; return (
+                <div key={i} className="flex flex-col items-center gap-3 group relative w-full">
+                  <div className="w-2/3 rounded-t-md transition-all bg-[var(--border)] relative overflow-hidden" style={{ height: `${Math.max(4, h)}%`, backgroundColor: d.mins > 0 ? accentColor : '', boxShadow: d.mins > 0 ? `0 0 10px ${accentColor}60` : '' }}>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                  </div>
+                  <div className="text-[10px] text-muted font-mono">{d.date.split(' ')[0]}</div>
+                </div>
+              )})}
+            </div>
+          </div>
+
+          {tL.length > 0 && <div className="space-y-4"><div className="text-xs text-muted uppercase tracking-[0.2em] font-medium mb-3">Top Tags</div><div className="space-y-3 max-w-[320px] mx-auto">{tL.map(([tg, c]) => <div key={tg} className="flex items-center justify-between text-sm bg-[var(--border)] px-4 py-3 rounded-xl"><span className="text-[var(--text)] font-medium">#{tg}</span><span className="text-muted font-mono bg-black/30 px-2 py-1 rounded">{c}</span></div>)}</div></div>}
+          
+          <div className="mt-auto pt-8 space-y-3 w-full">
+            <button onClick={()=>{ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({stats, settings: storage.get('flow_settings'), tasks}, null, 2)], {type:'application/json'})); a.download='flow.json'; a.click(); }} className="w-full py-4 rounded-xl bg-[var(--border)] hover:bg-[var(--hover)] text-sm transition-all font-bold uppercase tracking-widest border border-transparent hover:border-white/10">Export Data (JSON)</button>
+            <button onClick={async ()=>{ if(window.confirm("Erase all data?")){ localStorage.clear(); await idb.clearAll(); window.location.reload(); } }} className="w-full py-4 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 text-sm transition-all font-bold uppercase tracking-widest">Wipe Database</button>
+          </div>
+        </div>
+      );
+    }
+
+    function SettingsPanel({ settings: s, setSettings: ss }) {
+      const sw = [{ n: 'violet', h: '#8b5cf6' }, { n: 'cyan', h: '#06b6d4' }, { n: 'emerald', h: '#10b981' }, { n: 'rose', h: '#f43f5e' }, { n: 'amber', h: '#fbbf24' }, { n: 'white', h: '#ffffff' }];
+      const u = (k, v) => ss(x => ({ ...x, [k]: v }));
+      
+      const Block = ({title, children}) => (
+        <section className="space-y-5 bg-[var(--border)] p-6 rounded-2xl border border-[var(--border-light)]">
+          <h3 className="text-xs text-[var(--text)] uppercase tracking-[0.2em] font-bold">{title}</h3>
+          <div className="space-y-5">{children}</div>
+        </section>
+      );
+
+      return (
+        <div className="flex flex-col space-y-6 pb-10">
+          <Block title="Engine Parameters">
+            <label className="flex items-center justify-between text-sm"><span className="text-muted font-medium">Focus Phase</span><input type="number" min="1" max="120" value={s.pomodoroFocus} onChange={(e) => u('pomodoroFocus', parseInt(e.target.value)||25)} className="w-20 bg-black/40 border border-[var(--border-light)] rounded-lg py-1.5 text-center font-mono focus:outline-none focus:border-[var(--text)] transition-colors" /></label>
+            <label className="flex items-center justify-between text-sm"><span className="text-muted font-medium">Short Break</span><input type="number" min="1" max="60" value={s.pomodoroShort} onChange={(e) => u('pomodoroShort', parseInt(e.target.value)||5)} className="w-20 bg-black/40 border border-[var(--border-light)] rounded-lg py-1.5 text-center font-mono focus:outline-none focus:border-[var(--text)] transition-colors" /></label>
+            <label className="flex items-center justify-between text-sm"><span className="text-muted font-medium">Long Break</span><input type="number" min="1" max="60" value={s.pomodoroLong} onChange={(e) => u('pomodoroLong', parseInt(e.target.value)||15)} className="w-20 bg-black/40 border border-[var(--border-light)] rounded-lg py-1.5 text-center font-mono focus:outline-none focus:border-[var(--text)] transition-colors" /></label>
+          </Block>
+
+          <Block title="Operation Mode">
+            <div className="flex flex-col gap-2"><span className="text-sm text-muted font-medium">Architecture</span><select value={s.timerMode} onChange={(e) => u('timerMode', e.target.value)} className="bg-black/40 border border-[var(--border-light)] rounded-lg p-3 text-sm focus:outline-none focus:border-[var(--text)] transition-colors appearance-none font-medium"><option value="pomodoro">Pomodoro (Standard)</option><option value="stopwatch">Stopwatch (Count-up)</option><option value="flowtime">Flowtime (Dynamic Break)</option></select></div>
+            <label className="flex items-center justify-between text-sm cursor-pointer pt-2"><span className="text-muted font-medium">Auto-start phases</span><input type="checkbox" checked={s.autoStart} onChange={(e) => u('autoStart', e.target.checked)} className="w-5 h-5 rounded accent-[var(--text)]" /></label>
+            <label className="flex items-center justify-between text-sm cursor-pointer pt-2"><span className="text-muted font-medium">Strict Mode (Hold to pause)</span><input type="checkbox" checked={s.strictMode} onChange={(e) => u('strictMode', e.target.checked)} className="w-5 h-5 rounded accent-[var(--text)]" /></label>
+          </Block>
+
+          <Block title="Holographics">
+            <div className="flex flex-col gap-2"><span className="text-sm text-muted font-medium">Environment</span><select value={s.theme} onChange={(e) => u('theme', e.target.value)} className="bg-black/40 border border-[var(--border-light)] rounded-lg p-3 text-sm focus:outline-none focus:border-[var(--text)] transition-colors appearance-none font-medium"><option value="dark">Dark Matter</option><option value="light">Photon (Light)</option><option value="system">Auto Sync</option></select></div>
+            <div className="flex flex-col gap-4 pt-2"><span className="text-sm text-muted font-medium">Accent Core</span><div className="flex items-center justify-between px-2">{sw.map(x => <button key={x.n} onClick={() => u('accentColor', x.h)} className={`w-8 h-8 rounded-full transition-all duration-300 ${s.accentColor === x.h ? 'scale-125 ring-2 ring-offset-4 ring-offset-[var(--panel)]' : 'opacity-50 hover:opacity-100 hover:scale-110'}`} style={{ backgroundColor: x.h, '--tw-ring-color': x.h, boxShadow: s.accentColor === x.h ? `0 0 15px ${x.h}` : '' }} />)}</div></div>
+          </Block>
+
+          <Block title="Telemetry">
+            <div className="flex flex-col gap-2"><span className="text-sm text-muted font-medium">Phase Link Sound</span><select value={s.chime} onChange={(e) => u('chime', e.target.value)} className="bg-black/40 border border-[var(--border-light)] rounded-lg p-3 text-sm focus:outline-none focus:border-[var(--text)] transition-colors appearance-none font-medium"><option value="sine">Gentle Sine Wave</option><option value="bell">Soft Bell</option><option value="digital">Digital Ping</option><option value="silent">Muted</option></select></div>
+            <button onClick={()=>'Notification' in window && Notification.requestPermission()} className="w-full py-3 mt-2 border border-[var(--border-light)] hover:bg-[var(--border)] rounded-lg text-sm transition-colors text-center font-bold uppercase tracking-widest">Enable OS Notifications</button>
+            <label className="flex items-center justify-between text-sm cursor-pointer pt-2"><span className="text-muted font-medium">Daily Intention Prompt</span><input type="checkbox" checked={s.intentionPrompt} onChange={(e) => u('intentionPrompt', e.target.checked)} className="w-5 h-5 rounded accent-[var(--text)]" /></label>
+          </Block>
+        </div>
+      );
+    }
+
+    // --- MAIN APP COMPONENT ---
+    function App() {
+      const t = useTimer(); const tH = useTasks(); const iB = t.phase === 'shortBreak' || t.phase === 'longBreak' || t.phase === 'flowBreak'; const aH = useAudio(iB);
+      const [aP, setAP] = useState(null); const [iZ, setIZ] = useState(false);
+      const [int, setInt] = useState(() => storage.get('intention_text', '')); const [iDt, setIDt] = useState(() => storage.get('intention_date', ''));
+      const td = new Date().toDateString(); const [sIP, setSIP] = useState(t.settings.intentionPrompt && iDt !== td); const [dI, setDI] = useState(false);
+
+      useEffect(() => {
+        const r = document.documentElement; let eT = t.settings.theme;
+        if (eT === 'system') eT = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        if (eT === 'light') { r.classList.add('theme-light'); r.classList.remove('dark'); } else { r.classList.remove('theme-light'); r.classList.add('dark'); }
+        if (iB) r.style.setProperty('--bg-base', 'var(--bg-break)'); else r.style.removeProperty('--bg-base');
+        r.style.setProperty('--glow', t.settings.accentColor + '15');
+      }, [t.settings.theme, iB, t.settings.accentColor]);
+
+      const pR = useRef(t.phase);
+      useEffect(() => { if (pR.current === 'focus' && iB) tH.addSessionToActive(); pR.current = t.phase; }, [t.phase, iB, tH]);
+
+      useEffect(() => {
+        let to; const hI = (e) => { if (e.target.tagName === 'INPUT') return; setIZ(false); clearTimeout(to); if (e.type === 'mousemove') to = setTimeout(() => setIZ(true), 15000); };
+        window.addEventListener('mousemove', hI); window.addEventListener('keydown', hI); window.addEventListener('mousedown', hI); to = setTimeout(() => setIZ(true), 15000);
+        return () => { window.removeEventListener('mousemove', hI); window.removeEventListener('keydown', hI); window.removeEventListener('mousedown', hI); clearTimeout(to); };
+      }, []);
+
+      useEffect(() => {
+        let sT; const hKD = (e) => {
+          if (e.target.tagName === 'INPUT') return; const k = e.key.toLowerCase();
+          if (e.code === 'Space' && !e.repeat) { e.preventDefault(); if (!t.isRunning) t.toggleTimer(); else if (t.isStrict) sT = setTimeout(() => t.toggleTimer(), 3000); else t.toggleTimer(); }
+          else if (k === 'r') t.resetTimer(); else if (k === 'z') setIZ(true); else if (k === 't') setAP(p => p === 'tasks' ? null : 'tasks'); else if (k === 'm') setAP(p => p === 'music' ? null : 'music');
+        };
+        const hKU = (e) => { if (e.code === 'Space' && sT) { clearTimeout(sT); sT = null; } };
+        window.addEventListener('keydown', hKD); window.addEventListener('keyup', hKU);
+        return () => { window.removeEventListener('keydown', hKD); window.removeEventListener('keyup', hKU); }
+      }, [t]);
+
+      const openPanel = (name) => {
+        if (name === 'music') aH.initAudio();
+        setAP(aP === name ? null : name);
+      };
+
+      if (sIP) {
+        return (
+          <div className="fixed inset-0 flex flex-col items-center justify-center z-50 p-6 bg-[var(--bg-base)] text-[var(--text)] bg-grid">
+            <div className="absolute inset-0 bg-radial-glow pointer-events-none"></div>
+            <h2 className="text-5xl font-light mb-12 tracking-tight z-10 font-sans" style={{ textShadow: `0 0 40px ${t.settings.accentColor}60` }}>Set your primary objective.</h2>
+            <input type="text" placeholder="Awaiting input..." className="bg-transparent border-b-2 border-[var(--border-light)] outline-none text-center text-3xl pb-4 w-full max-w-2xl focus:border-[var(--text)] transition-all font-light z-10 placeholder:text-gray-700 focus:placeholder:opacity-0" onKeyDown={(e)=>{ if(e.key==='Enter'){ const v = e.target.value.trim(); storage.set('intention_date', td); storage.set('intention_text', v); setInt(v); setIDt(td); setSIP(false); } }} autoFocus />
+            <p className="text-muted mt-10 text-sm tracking-[0.3em] uppercase z-10 font-bold opacity-50">Press Enter to engage</p>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen flex flex-col selection:bg-white/20 bg-grid">
+          
+          <div className="absolute inset-0 bg-radial-glow pointer-events-none transition-all duration-1000"></div>
+
+          {/* Intention display */}
+          {int && !dI && <div className={`absolute top-8 left-1/2 -translate-x-1/2 text-muted text-xs tracking-widest cursor-pointer hover:text-[var(--text)] transition-all duration-700 z-40 px-6 py-2.5 rounded-full bg-[var(--panel)] backdrop-blur-xl border border-[var(--border)] font-medium ${iZ ? 'opacity-0 -translate-y-4' : 'opacity-100 translate-y-0'}`} onClick={() => setDI(true)}>{int}</div>}
+          
+          {/* Glass Dock */}
+          <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 p-3 rounded-full bg-[var(--panel)] backdrop-blur-2xl border border-[var(--border-light)] shadow-2xl transition-all duration-700 z-40 ${iZ ? 'opacity-0 translate-y-12 pointer-events-none scale-95' : 'opacity-100 translate-y-0 scale-100'}`}>
+            <button onClick={() => openPanel('tasks')} className={`p-4 rounded-full transition-all duration-300 relative group ${aP === 'tasks' ? 'text-[var(--bg-base)]' : 'text-muted hover:text-[var(--text)] hover:bg-[var(--border)]'}`} style={aP === 'tasks' ? { backgroundColor: t.settings.accentColor, boxShadow: `0 0 20px ${t.settings.accentColor}80` } : {}}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-[var(--panel-solid)] px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border border-[var(--border)] opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text)] pointer-events-none">Tasks</div>
+            </button>
+            <button onClick={() => openPanel('music')} className={`p-4 rounded-full transition-all duration-300 relative group ${aP === 'music' ? 'text-[var(--bg-base)]' : 'text-muted hover:text-[var(--text)] hover:bg-[var(--border)]'}`} style={aP === 'music' ? { backgroundColor: t.settings.accentColor, boxShadow: `0 0 20px ${t.settings.accentColor}80` } : {}}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-[var(--panel-solid)] px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border border-[var(--border)] opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text)] pointer-events-none">Audio</div>
+            </button>
+            <button onClick={() => openPanel('stats')} className={`p-4 rounded-full transition-all duration-300 relative group ${aP === 'stats' ? 'text-[var(--bg-base)]' : 'text-muted hover:text-[var(--text)] hover:bg-[var(--border)]'}`} style={aP === 'stats' ? { backgroundColor: t.settings.accentColor, boxShadow: `0 0 20px ${t.settings.accentColor}80` } : {}}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+              <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-[var(--panel-solid)] px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border border-[var(--border)] opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text)] pointer-events-none">Telemetry</div>
+            </button>
+            <button onClick={() => openPanel('settings')} className={`p-4 rounded-full transition-all duration-300 relative group ${aP === 'settings' ? 'text-[var(--bg-base)]' : 'text-muted hover:text-[var(--text)] hover:bg-[var(--border)]'}`} style={aP === 'settings' ? { backgroundColor: t.settings.accentColor, boxShadow: `0 0 20px ${t.settings.accentColor}80` } : {}}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-[var(--panel-solid)] px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border border-[var(--border)] opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text)] pointer-events-none">System</div>
+            </button>
+          </div>
+
+          <MainScreen timer={t} taskHook={tH} audioHook={aH} isZen={iZ} />
+
+          <Panel isOpen={aP === 'tasks'} onClose={() => setAP(null)} title="Task Database"><TasksPanel taskHook={tH} accentColor={t.settings.accentColor} /></Panel>
+          <Panel isOpen={aP === 'music'} onClose={() => setAP(null)} title="Audio Interface"><MusicPanel audioHook={aH} accentColor={t.settings.accentColor} /></Panel>
+          <Panel isOpen={aP === 'stats'} onClose={() => setAP(null)} title="System Telemetry"><StatsPanel stats={t.stats} tasks={tH.tasks} accentColor={t.settings.accentColor} /></Panel>
+          <Panel isOpen={aP === 'settings'} onClose={() => setAP(null)} title="Configuration"><SettingsPanel settings={t.settings} setSettings={t.setSettings} /></Panel>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
