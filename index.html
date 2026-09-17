@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>FLOW // Next-Gen Command Center</title>
   
-  <!-- Premium Modern Typography -->
+  <!-- Modern Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,800;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -22,13 +22,13 @@
             mono: ['"JetBrains Mono"', 'monospace']
           },
           animation: {
-            'spin-slow': 'spin 40s linear infinite',
+            'spin-slow': 'spin 45s linear infinite',
             'pulse-glow': 'pulseGlow 2.5s ease-in-out infinite'
           },
           keyframes: {
             pulseGlow: {
-              '0%, 100%': { opacity: '0.4', transform: 'scale(1)' },
-              '50%': { opacity: '0.8', transform: 'scale(1.03)' }
+              '0%, 100%': { opacity: '0.35', transform: 'scale(1)' },
+              '50%': { opacity: '0.75', transform: 'scale(1.04)' }
             }
           }
         }
@@ -43,14 +43,13 @@
 
   <style>
     :root {
-      --bg-base: #070709;
-      --bg-surface: rgba(18, 18, 26, 0.7);
+      --bg-base: #07070b;
+      --bg-surface: rgba(18, 18, 26, 0.75);
       --border-subtle: rgba(255, 255, 255, 0.08);
       --border-highlight: rgba(255, 255, 255, 0.18);
       --text-main: #f3f4f6;
       --text-muted: #9ca3af;
       --accent: #3b82f6;
-      --accent-glow: rgba(59, 130, 246, 0.25);
     }
     
     * {
@@ -75,23 +74,18 @@
       background-image: 
         linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
         linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-      mask-image: radial-gradient(circle at 50% 45%, black 40%, transparent 85%);
-      -webkit-mask-image: radial-gradient(circle at 50% 45%, black 40%, transparent 85%);
+      mask-image: radial-gradient(circle at 50% 45%, black 40%, transparent 88%);
+      -webkit-mask-image: radial-gradient(circle at 50% 45%, black 40%, transparent 88%);
     }
 
     .glass {
       background: var(--bg-surface);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       border: 1px solid var(--border-subtle);
     }
 
-    .glass-active {
-      border-color: var(--border-highlight);
-      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-    }
-
-    /* Custom range slider styling */
+    /* Custom Range Slider */
     input[type=range] {
       -webkit-appearance: none;
       height: 6px;
@@ -101,12 +95,12 @@
     }
     input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 16px;
-      height: 16px;
+      width: 15px;
+      height: 15px;
       border-radius: 50%;
       background: #ffffff;
       cursor: pointer;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
       transition: transform 0.1s;
     }
     input[type=range]::-webkit-slider-thumb:hover {
@@ -123,7 +117,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
-    // --- STORAGE & DB HELPERS ---
+    // --- STORAGE & INDEXEDDB ENGINE FOR CUSTOM AUDIO ---
     const storage = {
       get: (k, d) => { try { const i = window.localStorage.getItem(k); return i ? JSON.parse(i) : d; } catch (e) { return d; } },
       set: (k, v) => { try { window.localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
@@ -134,17 +128,22 @@
       async init() {
         if (this.db) return this.db;
         return new Promise((res, rej) => {
-          const req = indexedDB.open('flow_tracks_vault', 1);
-          req.onupgradeneeded = e => e.target.result.createObjectStore('tracks', { keyPath: 'id' });
+          const req = indexedDB.open('flow_music_vault_v3', 1);
+          req.onupgradeneeded = e => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('tracks')) {
+              db.createObjectStore('tracks', { keyPath: 'id' });
+            }
+          };
           req.onsuccess = e => { this.db = e.target.result; res(this.db); };
           req.onerror = () => rej();
         });
       },
-      async saveTrack(t) {
+      async saveTrack(track) {
         const db = await this.init();
         return new Promise(res => {
           const tx = db.transaction('tracks', 'readwrite');
-          tx.objectStore('tracks').put(t);
+          tx.objectStore('tracks').put(track);
           tx.oncomplete = () => res();
         });
       },
@@ -165,10 +164,18 @@
           tx.objectStore('tracks').delete(id);
           tx.oncomplete = () => res();
         });
+      },
+      async clearTracks() {
+        const db = await this.init();
+        return new Promise(res => {
+          const tx = db.transaction('tracks', 'readwrite');
+          tx.objectStore('tracks').clear();
+          tx.oncomplete = () => res();
+        });
       }
     };
 
-    // --- AUDIO & AMBIENCE ENGINE ---
+    // --- SOUND ENGINE (AMBIENCE + CHIMES) ---
     class SoundEngine {
       constructor() {
         this.ctx = null;
@@ -183,7 +190,7 @@
         this.masterGain.gain.setValueAtTime(0.8, this.ctx.currentTime);
         this.masterGain.connect(this.ctx.destination);
       }
-      playTone(type = 'chime') {
+      playTone(type = 'bell') {
         this.init();
         if (this.ctx.state === 'suspended') this.ctx.resume();
         const now = this.ctx.currentTime;
@@ -202,19 +209,18 @@
           osc.stop(now + 0.35);
         } else if (type === 'bell') {
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(784, now); // G5
+          osc.frequency.setValueAtTime(800, now);
           gain.gain.setValueAtTime(0.4, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
           osc.start(now);
           osc.stop(now + 1.8);
         } else {
-          // Zen gentle chime
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(523.25, now); // C5
+          osc.frequency.setValueAtTime(528, now); // 528Hz Solfeggio frequency
           gain.gain.setValueAtTime(0.35, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
           osc.start(now);
-          osc.stop(now + 1.2);
+          osc.stop(now + 1.4);
         }
       }
       startAmbience(type, volume = 0.5) {
@@ -238,7 +244,7 @@
             const white = Math.random() * 2 - 1;
             data[i] = (lastOut + 0.02 * white) / 1.02;
             lastOut = data[i];
-            data[i] *= 3.2;
+            data[i] *= 3.5;
           }
           const src = this.ctx.createBufferSource();
           src.buffer = buffer;
@@ -256,23 +262,23 @@
           src.loop = true;
           const filter = this.ctx.createBiquadFilter();
           filter.type = 'bandpass';
-          filter.frequency.value = 1200;
-          filter.Q.value = 0.8;
+          filter.frequency.value = 1100;
+          filter.Q.value = 0.7;
           src.connect(filter).connect(g);
           src.start();
-          this.nodes.rain = { src, gain: g, filter };
+          this.nodes.rain = { src, gain: g };
         } else if (type === 'hum') {
           const osc = this.ctx.createOscillator();
           osc.type = 'sine';
-          osc.frequency.value = 60;
+          osc.frequency.value = 55; // 55Hz Cosmic Deep Hum
           osc.connect(g);
           osc.start();
           this.nodes.hum = { src: osc, gain: g };
         } else if (type === 'binaural') {
           const oscL = this.ctx.createOscillator();
           const oscR = this.ctx.createOscillator();
-          oscL.type = 'sine'; oscL.frequency.value = 210;
-          oscR.type = 'sine'; oscR.frequency.value = 224; // 14Hz Beta/Flow
+          oscL.type = 'sine'; oscL.frequency.value = 200;
+          oscR.type = 'sine'; oscR.frequency.value = 214; // 14Hz Beta/Flow
           const merger = this.ctx.createChannelMerger(2);
           oscL.connect(merger, 0, 0);
           oscR.connect(merger, 0, 1);
@@ -301,7 +307,7 @@
     }
     const soundEngine = new SoundEngine();
 
-    // --- NOTIFICATION & WAKE LOCK SERVICES ---
+    // --- NOTIFICATIONS & WAKE LOCK ---
     const notifier = {
       async request() {
         if ('Notification' in window && Notification.permission !== 'granted') {
@@ -317,20 +323,15 @@
             });
           } catch(e) {}
         }
-        if ('vibrate' in navigator) {
-          navigator.vibrate([200, 100, 200, 100, 300]);
-        }
+        if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
       }
     };
 
-    // Keep screen awake during sessions
     let wakeLockSentinel = null;
     const wakeLock = {
       async request() {
         try {
-          if ('wakeLock' in navigator) {
-            wakeLockSentinel = await navigator.wakeLock.request('screen');
-          }
+          if ('wakeLock' in navigator) wakeLockSentinel = await navigator.wakeLock.request('screen');
         } catch(e) {}
       },
       release() {
@@ -341,9 +342,152 @@
       }
     };
 
-    // --- CUSTOM HOOKS ---
+    // --- HOOK: CUSTOM AUDIO PLAYER (UPLOAD & PLAYBACK) ---
+    function useMusicPlayer(isBreak) {
+      const [playlist, setPlaylist] = useState([]);
+      const [currentIndex, setCurrentIndex] = useState(0);
+      const [isPlaying, setIsPlaying] = useState(false);
+      const [currentTime, setCurrentTime] = useState(0);
+      const [duration, setDuration] = useState(0);
+      const [volume, setVolume] = useState(0.8);
+      const [repeatMode, setRepeatMode] = useState('all'); // 'off' | 'all' | 'one'
+      const [isShuffle, setIsShuffle] = useState(false);
+      const [duckOnBreak, setDuckOnBreak] = useState(true);
+
+      const audioRef = useRef(new Audio());
+      const currentTrack = playlist[currentIndex] || null;
+
+      // Load tracks from IndexedDB on startup
+      useEffect(() => {
+        idb.getAllTracks().then(tracks => {
+          const loaded = tracks.map(t => ({
+            ...t,
+            url: URL.createObjectURL(t.file)
+          }));
+          setPlaylist(loaded);
+        });
+      }, []);
+
+      // Handle Audio Element events
+      useEffect(() => {
+        const audio = audioRef.current;
+        const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+        const handleLoadedMetadata = () => setDuration(audio.duration || 0);
+        const handleEnded = () => {
+          if (repeatMode === 'one') {
+            audio.currentTime = 0;
+            audio.play();
+          } else if (repeatMode === 'all') {
+            handleNext();
+          } else {
+            if (currentIndex < playlist.length - 1) handleNext();
+            else setIsPlaying(false);
+          }
+        };
+
+        audio.addEventListener('timeupdate', handleTimeUpdate);
+        audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+        audio.addEventListener('ended', handleEnded);
+
+        return () => {
+          audio.removeEventListener('timeupdate', handleTimeUpdate);
+          audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+          audio.removeEventListener('ended', handleEnded);
+        };
+      }, [repeatMode, playlist.length, currentIndex]);
+
+      // Volume & Ducking Control
+      useEffect(() => {
+        const effectiveVolume = isBreak && duckOnBreak ? volume * 0.3 : volume;
+        audioRef.current.volume = Math.max(0, Math.min(1, effectiveVolume));
+      }, [volume, isBreak, duckOnBreak]);
+
+      const playTrackAtIndex = (index) => {
+        if (!playlist[index]) return;
+        setCurrentIndex(index);
+        audioRef.current.src = playlist[index].url;
+        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+      };
+
+      const togglePlay = () => {
+        if (!currentTrack) {
+          if (playlist.length > 0) playTrackAtIndex(0);
+          return;
+        }
+        if (isPlaying) {
+          audioRef.current.pause();
+          setIsPlaying(false);
+        } else {
+          audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+        }
+      };
+
+      const handleNext = () => {
+        if (playlist.length === 0) return;
+        let nextIndex = currentIndex + 1;
+        if (isShuffle) {
+          nextIndex = Math.floor(Math.random() * playlist.length);
+        } else if (nextIndex >= playlist.length) {
+          nextIndex = 0;
+        }
+        playTrackAtIndex(nextIndex);
+      };
+
+      const handlePrev = () => {
+        if (playlist.length === 0) return;
+        if (audioRef.current.currentTime > 3) {
+          audioRef.current.currentTime = 0;
+          return;
+        }
+        const prevIndex = currentIndex - 1 < 0 ? playlist.length - 1 : currentIndex - 1;
+        playTrackAtIndex(prevIndex);
+      };
+
+      const seek = (time) => {
+        audioRef.current.currentTime = time;
+        setCurrentTime(time);
+      };
+
+      const addTracks = async (files) => {
+        const valid = Array.from(files).filter(f => f.type.startsWith('audio/'));
+        const newItems = [];
+        for (const f of valid) {
+          const trackItem = {
+            id: Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+            name: f.name.replace(/\.[^/.]+$/, ""),
+            size: (f.size / (1024 * 1024)).toFixed(1) + ' MB',
+            file: f
+          };
+          await idb.saveTrack(trackItem);
+          trackItem.url = URL.createObjectURL(f);
+          newItems.push(trackItem);
+        }
+        setPlaylist(prev => [...prev, ...newItems]);
+      };
+
+      const removeTrack = async (id) => {
+        await idb.deleteTrack(id);
+        setPlaylist(prev => {
+          const filtered = prev.filter(t => t.id !== id);
+          if (currentTrack?.id === id) {
+            audioRef.current.pause();
+            setIsPlaying(false);
+          }
+          return filtered;
+        });
+      };
+
+      return {
+        playlist, currentTrack, isPlaying, currentTime, duration,
+        volume, setVolume, repeatMode, setRepeatMode, isShuffle, setIsShuffle,
+        duckOnBreak, setDuckOnBreak,
+        togglePlay, handleNext, handlePrev, seek, addTracks, removeTrack, playTrackAtIndex
+      };
+    }
+
+    // --- HOOK: TIMER SYSTEM WITH QUICK ADJUSTMENTS ---
     function useTimer() {
-      const [settings, setSettings] = useState(() => storage.get('flow_settings_v2', {
+      const [settings, setSettings] = useState(() => storage.get('flow_settings_v3', {
         pomodoroFocus: 25,
         pomodoroShort: 5,
         pomodoroLong: 15,
@@ -352,134 +496,144 @@
         accentColor: '#3b82f6',
         preset: '25/5'
       }));
-      useEffect(() => { storage.set('flow_settings_v2', settings); }, [settings]);
+      useEffect(() => { storage.set('flow_settings_v3', settings); }, [settings]);
 
-      const [stats, setStats] = useState(() => storage.get('flow_stats_v2', {
+      const [stats, setStats] = useState(() => storage.get('flow_stats_v3', {
         history: {},
         todayMinutes: 0,
         streak: 1,
-        lastActiveDate: new Date().toDateString(),
-        totalFocusSessions: 0
+        totalSessions: 0
       }));
-      useEffect(() => { storage.set('flow_stats_v2', stats); }, [stats]);
+      useEffect(() => { storage.set('flow_stats_v3', stats); }, [stats]);
 
-      const [mode, setMode] = useState('pomodoro'); // 'pomodoro' | 'stopwatch' | 'flowtime'
-      const [phase, setPhase] = useState('focus');   // 'focus' | 'shortBreak' | 'longBreak'
+      const [mode, setMode] = useState('pomodoro'); // 'pomodoro' | 'flowtime' | 'stopwatch'
+      const [phase, setPhase] = useState('focus');   // 'focus' | 'shortBreak' | 'longBreak' | 'flowBreak'
       const [isRunning, setIsRunning] = useState(false);
       const [time, setTime] = useState(settings.pomodoroFocus * 60);
       const [duration, setDuration] = useState(settings.pomodoroFocus * 60);
       const [sessionCount, setSessionCount] = useState(0);
 
-      const targetTimeRef = useRef(0);
-      const stopwatchStartRef = useRef(0);
-      const accumulatedMinsRef = useRef(0);
+      const targetRef = useRef(0);
+      const countUpStartRef = useRef(0);
+      const accumulatedSecsRef = useRef(0);
 
-      // Apply preset values
-      const applyPreset = (focus, short, name) => {
+      const applyPreset = (focus, rest, presetName) => {
         setIsRunning(false);
-        setSettings(s => ({ ...s, pomodoroFocus: focus, pomodoroShort: short, preset: name }));
+        setSettings(s => ({ ...s, pomodoroFocus: focus, pomodoroShort: rest, preset: presetName }));
         setPhase('focus');
         setDuration(focus * 60);
         setTime(focus * 60);
       };
 
-      // Timer completion logic
+      // On-the-fly adjustment (+1m, +5m, -5m)
+      const adjustTime = (deltaMinutes) => {
+        const deltaSeconds = deltaMinutes * 60;
+        if (mode === 'pomodoro') {
+          const newTime = Math.max(10, time + deltaSeconds);
+          setTime(newTime);
+          setDuration(d => Math.max(newTime, d + deltaSeconds));
+          if (isRunning) targetRef.current += deltaSeconds * 1000;
+        } else {
+          // Flowtime / Stopwatch count-up adjust
+          countUpStartRef.current -= deltaSeconds * 1000;
+          setTime(t => Math.max(0, t + deltaSeconds));
+        }
+      };
+
       const handleComplete = useCallback(() => {
         soundEngine.playTone(settings.chimeSound);
-        
-        if (phase === 'focus') {
-          const nextCount = sessionCount + 1;
-          setSessionCount(nextCount);
-          setStats(s => ({ ...s, totalFocusSessions: (s.totalFocusSessions || 0) + 1 }));
 
-          notifier.dispatch('🎯 Focus Interval Completed!', 'Great flow session. Step back and recharge.');
+        if (mode === 'pomodoro') {
+          if (phase === 'focus') {
+            const nextCount = sessionCount + 1;
+            setSessionCount(nextCount);
+            setStats(s => ({ ...s, totalSessions: (s.totalSessions || 0) + 1 }));
+            notifier.dispatch('🎯 Focus Interval Completed!', 'Take a well-deserved break.');
 
-          const isLong = nextCount % 4 === 0;
-          const nextPhase = isLong ? 'longBreak' : 'shortBreak';
-          const nextSecs = (isLong ? settings.pomodoroLong : settings.pomodoroShort) * 60;
+            const isLong = nextCount % 4 === 0;
+            const nextPhase = isLong ? 'longBreak' : 'shortBreak';
+            const nextSecs = (isLong ? settings.pomodoroLong : settings.pomodoroShort) * 60;
 
-          setPhase(nextPhase);
-          setDuration(nextSecs);
-          setTime(nextSecs);
-
-          if (settings.autoStart) {
-            targetTimeRef.current = Date.now() + nextSecs * 1000;
+            setPhase(nextPhase);
+            setDuration(nextSecs);
+            setTime(nextSecs);
+            if (settings.autoStart) targetRef.current = Date.now() + nextSecs * 1000;
+            else setIsRunning(false);
           } else {
-            setIsRunning(false);
+            notifier.dispatch('⚡ Break Completed', 'Ready for your next power session?');
+            setPhase('focus');
+            const focusSecs = settings.pomodoroFocus * 60;
+            setDuration(focusSecs);
+            setTime(focusSecs);
+            if (settings.autoStart) targetRef.current = Date.now() + focusSecs * 1000;
+            else setIsRunning(false);
           }
-        } else {
-          // Break finished
-          notifier.dispatch('⚡ Break Completed', 'Ready for the next sprint? Let\'s go.');
+        } else if (mode === 'flowtime' && phase === 'focus') {
+          // Break time is 1/5th of time focused
+          const breakSecs = Math.max(60, Math.floor(time / 5));
+          notifier.dispatch('🌊 Flow Session Ended', `Calculated Break: ${Math.round(breakSecs / 60)} minutes.`);
+          setPhase('flowBreak');
+          setDuration(breakSecs);
+          setTime(breakSecs);
+          targetRef.current = Date.now() + breakSecs * 1000;
+          setIsRunning(true);
+        } else if (mode === 'flowtime' && phase === 'flowBreak') {
+          notifier.dispatch('⚡ Break Over', 'Return to your natural flow state.');
           setPhase('focus');
-          const focusSecs = settings.pomodoroFocus * 60;
-          setDuration(focusSecs);
-          setTime(focusSecs);
-
-          if (settings.autoStart) {
-            targetTimeRef.current = Date.now() + focusSecs * 1000;
-          } else {
-            setIsRunning(false);
-          }
+          setTime(0);
+          setDuration(0);
+          countUpStartRef.current = Date.now();
+          setIsRunning(true);
         }
-      }, [phase, sessionCount, settings, setStats]);
+      }, [mode, phase, sessionCount, settings, time, setStats]);
 
-      // Main interval tick
       useEffect(() => {
         if (!isRunning) {
           wakeLock.release();
           return;
         }
-
         wakeLock.request();
+
         const interval = setInterval(() => {
           const now = Date.now();
-
-          // Stopwatch / Flowtime count-up
           if (mode === 'stopwatch' || (mode === 'flowtime' && phase === 'focus')) {
-            const elapsed = Math.floor((now - stopwatchStartRef.current) / 1000);
+            const elapsed = Math.floor((now - countUpStartRef.current) / 1000);
             setTime(elapsed);
             return;
           }
 
-          // Countdown
-          const remaining = Math.max(0, Math.ceil((targetTimeRef.current - now) / 1000));
-          setTime(remaining);
+          const rem = Math.max(0, Math.ceil((targetRef.current - now) / 1000));
+          setTime(rem);
 
-          // Log daily minutes for focus phase
+          // Track focused minutes
           if (phase === 'focus') {
-            accumulatedMinsRef.current += 0.25;
-            if (accumulatedMinsRef.current >= 60) {
-              accumulatedMinsRef.current = 0;
+            accumulatedSecsRef.current += 0.25;
+            if (accumulatedSecsRef.current >= 60) {
+              accumulatedSecsRef.current = 0;
               const today = new Date().toDateString();
-              setStats(prev => {
-                const dayMins = (prev.history[today] || 0) + 1;
-                return {
-                  ...prev,
-                  history: { ...prev.history, [today]: dayMins },
-                  todayMinutes: dayMins
-                };
-              });
+              setStats(s => ({
+                ...s,
+                history: { ...s.history, [today]: (s.history[today] || 0) + 1 },
+                todayMinutes: (s.history[today] || 0) + 1
+              }));
             }
           }
 
-          if (remaining <= 0) {
-            handleComplete();
-          }
+          if (rem <= 0) handleComplete();
         }, 250);
 
         return () => clearInterval(interval);
       }, [isRunning, mode, phase, handleComplete, setStats]);
 
-      // Play / Pause toggle
       const toggle = () => {
-        notifier.request(); // ensure notification permission prompt when user starts
+        notifier.request();
         if (isRunning) {
           setIsRunning(false);
         } else {
           if (mode === 'stopwatch' || (mode === 'flowtime' && phase === 'focus')) {
-            stopwatchStartRef.current = Date.now() - (time * 1000);
+            countUpStartRef.current = Date.now() - (time * 1000);
           } else {
-            targetTimeRef.current = Date.now() + (time * 1000);
+            targetRef.current = Date.now() + (time * 1000);
           }
           setIsRunning(true);
         }
@@ -498,56 +652,75 @@
       };
 
       const skip = () => {
-        if (confirm('Skip this interval?')) {
-          handleComplete();
-        }
+        if (confirm('Advance to next interval?')) handleComplete();
       };
 
-      // Synchronize document title
       useEffect(() => {
         const m = Math.floor(time / 60).toString().padStart(2, '0');
         const s = (time % 60).toString().padStart(2, '0');
-        const stateStr = isRunning ? (phase === 'focus' ? '🎯' : '☕') : '⏸';
-        document.title = `${stateStr} ${m}:${s} - FLOW`;
+        const badge = isRunning ? (phase === 'focus' ? '🎯' : '☕') : '⏸';
+        document.title = `${badge} ${m}:${s} - FLOW`;
       }, [time, isRunning, phase]);
 
       return {
         time, duration, phase, mode, sessionCount, isRunning,
         settings, setSettings, stats, setStats,
-        toggle, reset, skip, applyPreset, setMode
+        toggle, reset, skip, applyPreset, adjustTime, setMode
       };
     }
 
+    // --- HOOK: TASK MANAGER WITH SUBTASKS & TARGETS ---
     function useTaskManager() {
-      const [tasks, setTasks] = useState(() => storage.get('flow_tasklist_v2', [
-        { id: '1', title: 'Draft project architecture proposal', completed: false, est: 3, act: 1, priority: true, tag: 'work' },
-        { id: '2', title: 'Review merge requests & telemetry logs', completed: false, est: 2, act: 0, priority: false, tag: 'code' },
-        { id: '3', title: 'Deep stretch & hydration session', completed: true, est: 1, act: 1, priority: false, tag: 'health' }
+      const [tasks, setTasks] = useState(() => storage.get('flow_tasks_v3', [
+        {
+          id: '1',
+          title: 'Design distributed storage layer',
+          completed: false,
+          est: 3,
+          act: 1,
+          priority: true,
+          tag: 'arch',
+          subtasks: [
+            { id: 's1', title: 'Evaluate IndexedDB vs SQLite WASM', completed: true },
+            { id: 's2', title: 'Build cache eviction policy', completed: false }
+          ]
+        },
+        {
+          id: '2',
+          title: 'Deep focus coding sprint',
+          completed: false,
+          est: 4,
+          act: 2,
+          priority: false,
+          tag: 'code',
+          subtasks: []
+        }
       ]));
-      useEffect(() => { storage.set('flow_tasklist_v2', tasks); }, [tasks]);
+      useEffect(() => { storage.set('flow_tasks_v3', tasks); }, [tasks]);
 
-      const [activeId, setActiveId] = useState(() => storage.get('flow_active_task_id', '1'));
-      useEffect(() => { storage.set('flow_active_task_id', activeId); }, [activeId]);
+      const [activeId, setActiveId] = useState(() => storage.get('flow_active_task_id_v3', '1'));
+      useEffect(() => { storage.set('flow_active_task_id_v3', activeId); }, [activeId]);
 
       const activeTask = useMemo(() => tasks.find(t => t.id === activeId), [tasks, activeId]);
 
       const addTask = (title, tag = 'work', est = 2, priority = false) => {
         if (!title.trim()) return;
-        const newTask = {
+        const nt = {
           id: Date.now().toString(),
           title: title.trim(),
           completed: false,
           est: Number(est) || 1,
           act: 0,
           priority: Boolean(priority),
-          tag: tag.toLowerCase() || 'general'
+          tag: tag.toLowerCase() || 'general',
+          subtasks: []
         };
-        setTasks(prev => [newTask, ...prev]);
-        if (!activeId) setActiveId(newTask.id);
+        setTasks(p => [nt, ...p]);
+        if (!activeId) setActiveId(nt.id);
       };
 
       const toggleTask = (id) => {
-        setTasks(prev => prev.map(t => {
+        setTasks(p => p.map(t => {
           if (t.id === id) {
             const nextState = !t.completed;
             if (nextState && activeId === id) setActiveId(null);
@@ -558,119 +731,161 @@
       };
 
       const deleteTask = (id) => {
-        setTasks(prev => prev.filter(t => t.id !== id));
+        setTasks(p => p.filter(t => t.id !== id));
         if (activeId === id) setActiveId(null);
       };
 
-      const incrementAct = (id) => {
-        setTasks(prev => prev.map(t => t.id === id ? { ...t, act: t.act + 1 } : t));
+      const updateTaskTitle = (id, title) => {
+        setTasks(p => p.map(t => t.id === id ? { ...t, title } : t));
       };
 
-      const updateTaskTitle = (id, newTitle) => {
-        setTasks(prev => prev.map(t => t.id === id ? { ...t, title: newTitle } : t));
+      const incrementAct = (id) => {
+        setTasks(p => p.map(t => t.id === id ? { ...t, act: t.act + 1 } : t));
+      };
+
+      const addSubtask = (taskId, title) => {
+        if (!title.trim()) return;
+        setTasks(p => p.map(t => {
+          if (t.id === taskId) {
+            return {
+              ...t,
+              subtasks: [...t.subtasks, { id: Date.now().toString(), title: title.trim(), completed: false }]
+            };
+          }
+          return t;
+        }));
+      };
+
+      const toggleSubtask = (taskId, subId) => {
+        setTasks(p => p.map(t => {
+          if (t.id === taskId) {
+            return {
+              ...t,
+              subtasks: t.subtasks.map(st => st.id === subId ? { ...st, completed: !st.completed } : st)
+            };
+          }
+          return t;
+        }));
       };
 
       const clearCompleted = () => {
-        setTasks(prev => prev.filter(t => !t.completed));
+        setTasks(p => p.filter(t => !t.completed));
       };
 
       return {
         tasks, activeTask, activeId, setActiveId,
-        addTask, toggleTask, deleteTask, incrementAct,
-        updateTaskTitle, clearCompleted
+        addTask, toggleTask, deleteTask, updateTaskTitle, incrementAct,
+        addSubtask, toggleSubtask, clearCompleted
       };
     }
 
-    // --- UI ATOMS & ICONS ---
+    // --- ICONS ---
     const Icons = {
       Play: () => <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg>,
       Pause: () => <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>,
       Reset: () => <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
       Skip: () => <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>,
-      Check: () => <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>,
+      Next: () => <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" strokeWidth="2"/></svg>,
+      Prev: () => <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" strokeWidth="2"/></svg>,
+      Check: () => <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>,
       Trash: () => <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
-      Tasks: () => <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
+      Tasks: () => <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>,
       Music: () => <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>,
       Stats: () => <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
       Settings: () => <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
-      Zen: () => <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/></svg>,
+      Zen: () => <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>,
+      Expand: () => <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>,
+      Upload: () => <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
       Close: () => <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     };
 
-    // --- RESPONSIVE SVG TIMER RING ---
-    function TimerDisplay({ time, duration, isRunning, phase, accentColor, onToggle }) {
+    function formatTime(secs) {
+      if (isNaN(secs)) return '0:00';
+      const m = Math.floor(secs / 60);
+      const s = Math.floor(secs % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    // --- RESPONSIVE SVG RING ---
+    function TimerRing({ time, duration, isRunning, phase, accentColor, onToggle, onAdjust }) {
       const radius = 42;
       const circumference = 2 * Math.PI * radius;
       const progress = duration > 0 ? (duration - time) / duration : 1;
       const strokeDashoffset = circumference - progress * circumference;
 
-      const minutes = Math.floor(time / 60).toString().padStart(2, '0');
-      const seconds = (time % 60).toString().padStart(2, '0');
+      const m = Math.floor(time / 60).toString().padStart(2, '0');
+      const s = (time % 60).toString().padStart(2, '0');
 
       return (
-        <div className="relative flex items-center justify-center cursor-pointer group select-none" onClick={onToggle}>
-          {/* Subtle Ambient Radial Glow */}
-          <div 
-            className="absolute inset-0 rounded-full blur-3xl opacity-20 transition-all duration-700 pointer-events-none"
-            style={{ backgroundColor: accentColor, transform: isRunning ? 'scale(1.1)' : 'scale(0.9)' }}
-          />
+        <div className="relative flex flex-col items-center justify-center">
+          <div className="relative flex items-center justify-center select-none cursor-pointer" onClick={onToggle}>
+            <div 
+              className="absolute inset-0 rounded-full blur-3xl opacity-20 transition-all duration-700 pointer-events-none"
+              style={{ backgroundColor: accentColor, transform: isRunning ? 'scale(1.12)' : 'scale(0.88)' }}
+            />
 
-          <svg className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 -rotate-90 transform" viewBox="0 0 100 100">
-            {/* Background Track */}
-            <circle
-              cx="50" cy="50" r={radius}
-              className="stroke-white/5"
-              strokeWidth="2.5"
-              fill="transparent"
-            />
-            {/* Rotating Tech Grid Circle */}
-            <circle
-              cx="50" cy="50" r={radius - 4}
-              className="stroke-white/10"
-              strokeWidth="0.8"
-              strokeDasharray="1 3"
-              fill="transparent"
-            />
-            {/* Dynamic Progress Meter */}
-            <circle
-              cx="50" cy="50" r={radius}
-              stroke={accentColor}
-              strokeWidth="3.2"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              strokeLinecap="round"
-              fill="transparent"
-              style={{
-                transition: 'stroke-dashoffset 0.4s ease-out',
-                filter: `drop-shadow(0 0 8px ${accentColor}80)`
-              }}
-            />
-          </svg>
+            <svg className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 -rotate-90 transform" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r={radius} className="stroke-white/5" strokeWidth="2.5" fill="transparent" />
+              <circle cx="50" cy="50" r={radius - 4} className="stroke-white/10" strokeWidth="0.8" strokeDasharray="1 3" fill="transparent" />
+              <circle
+                cx="50" cy="50" r={radius}
+                stroke={accentColor}
+                strokeWidth="3.2"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+                fill="transparent"
+                style={{
+                  transition: 'stroke-dashoffset 0.4s ease-out',
+                  filter: `drop-shadow(0 0 8px ${accentColor}80)`
+                }}
+              />
+            </svg>
 
-          {/* Centered Time HUD */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-            <span className="text-xs uppercase tracking-[0.3em] font-mono text-gray-400 mb-1">
-              {phase === 'focus' ? 'Focus Interval' : phase === 'shortBreak' ? 'Rest Interval' : 'Long Break'}
-            </span>
-            <div className="text-6xl sm:text-7xl md:text-8xl font-light font-mono tracking-tight text-white flex items-center justify-center">
-              <span>{minutes}</span>
-              <span className="opacity-40 animate-pulse">:</span>
-              <span>{seconds}</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+              <span className="text-[11px] uppercase tracking-[0.3em] font-mono text-gray-400 mb-1">
+                {phase === 'focus' ? 'Deep Work Interval' : phase === 'shortBreak' ? 'Short Recess' : 'Long Rejuvenation'}
+              </span>
+              <div className="text-6xl sm:text-7xl md:text-8xl font-light font-mono tracking-tight text-white flex items-center justify-center">
+                <span>{m}</span>
+                <span className="opacity-40 animate-pulse">:</span>
+                <span>{s}</span>
+              </div>
+              <div className={`mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase transition-all duration-300 ${
+                isRunning ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-white/5 text-gray-400 border border-white/10'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-emerald-400 animate-ping' : 'bg-gray-400'}`} />
+                {isRunning ? 'Flow Running' : 'Session Paused'}
+              </div>
             </div>
-            
-            {/* Action State Indicator Pill */}
-            <div className={`mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase transition-all duration-300 ${
-              isRunning ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-white/5 text-gray-400 border border-white/10'
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-emerald-400 animate-ping' : 'bg-gray-400'}`} />
-              {isRunning ? 'Running' : 'Paused (Click to Start)'}
-            </div>
+          </div>
+
+          {/* ON-THE-FLY TIME ADJUSTMENT STEPPERS */}
+          <div className="flex items-center gap-2 mt-4">
+            <button
+              onClick={() => onAdjust(-5)}
+              className="px-2.5 py-1 text-xs font-mono font-semibold rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-white/5 transition-all"
+            >
+              -5m
+            </button>
+            <button
+              onClick={() => onAdjust(1)}
+              className="px-2.5 py-1 text-xs font-mono font-semibold rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-white/5 transition-all"
+            >
+              +1m
+            </button>
+            <button
+              onClick={() => onAdjust(5)}
+              className="px-2.5 py-1 text-xs font-mono font-semibold rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-white/5 transition-all"
+            >
+              +5m
+            </button>
           </div>
         </div>
       );
     }
 
-    // --- SLIDING MODAL DRAWER ---
+    // --- DRAWER MODAL ---
     function Drawer({ isOpen, onClose, title, children }) {
       useEffect(() => {
         const handler = (e) => { if (e.key === 'Escape') onClose(); };
@@ -682,26 +897,15 @@
 
       return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity duration-300"
-            onClick={onClose}
-          />
-          {/* Sheet Modal */}
-          <div className="relative w-full sm:max-w-xl max-h-[88vh] sm:h-auto sm:max-h-[85vh] bg-[#0f0f15] border border-white/10 sm:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col overflow-hidden z-10 transition-transform duration-300 ease-out">
-            {/* Mobile Grab Bar */}
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
+          <div className="relative w-full sm:max-w-xl max-h-[88vh] sm:h-auto sm:max-h-[85vh] bg-[#0c0c12] border border-white/10 sm:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col overflow-hidden z-10">
             <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mt-3 sm:hidden shrink-0" />
-            
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-              <h3 className="text-sm font-bold uppercase tracking-widest text-gray-200">{title}</h3>
-              <button 
-                onClick={onClose}
-                className="p-1.5 text-gray-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition-colors"
-              >
+              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-300 font-mono">{title}</h3>
+              <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10">
                 <Icons.Close />
               </button>
             </div>
-
             <div className="p-6 overflow-y-auto scrollbar-hide space-y-6">
               {children}
             </div>
@@ -710,15 +914,15 @@
       );
     }
 
-    // --- PRACTICAL TO-DO COMPONENT ---
-    function TaskPanelContent({ taskManager, accentColor }) {
-      const { tasks, activeId, setActiveId, addTask, toggleTask, deleteTask, updateTaskTitle, clearCompleted, incrementAct } = taskManager;
-      const [filter, setFilter] = useState('all'); // all, active, done
+    // --- TASK PANEL WITH SUBTASKS ---
+    function TasksContent({ taskManager, accentColor }) {
+      const { tasks, activeId, setActiveId, addTask, toggleTask, deleteTask, updateTaskTitle, clearCompleted, incrementAct, addSubtask, toggleSubtask } = taskManager;
+      const [filter, setFilter] = useState('all');
       const [newTitle, setNewTitle] = useState('');
       const [newTag, setNewTag] = useState('work');
       const [newEst, setNewEst] = useState(2);
-      const [editingId, setEditingId] = useState(null);
-      const [editText, setEditText] = useState('');
+      const [subInputTaskId, setSubInputTaskId] = useState(null);
+      const [subTitle, setSubTitle] = useState('');
 
       const filtered = useMemo(() => {
         if (filter === 'active') return tasks.filter(t => !t.completed);
@@ -734,26 +938,28 @@
         }
       };
 
-      const saveEdit = (id) => {
-        if (editText.trim()) updateTaskTitle(id, editText);
-        setEditingId(null);
+      const handleSubAdd = (taskId) => {
+        if (subTitle.trim()) {
+          addSubtask(taskId, subTitle);
+          setSubTitle('');
+          setSubInputTaskId(null);
+        }
       };
 
       return (
         <div className="space-y-6">
-          {/* Quick Add Bar */}
           <form onSubmit={handleAdd} className="space-y-3">
             <div className="relative">
               <input
                 type="text"
                 value={newTitle}
                 onChange={e => setNewTitle(e.target.value)}
-                placeholder="What is your immediate focus objective?"
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-blue-500/80 transition-colors"
+                placeholder="What is your immediate focus goal?"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
               />
               <button
                 type="submit"
-                className="absolute right-2 top-2 bottom-2 px-4 rounded-xl text-xs font-bold uppercase tracking-wider text-black transition-transform active:scale-95"
+                className="absolute right-2 top-2 bottom-2 px-4 rounded-xl text-xs font-bold uppercase tracking-wider text-black active:scale-95"
                 style={{ backgroundColor: accentColor }}
               >
                 Add
@@ -768,17 +974,16 @@
                   className="bg-transparent text-white focus:outline-none capitalize font-medium"
                 >
                   <option value="work" className="bg-[#12121a]">Work</option>
-                  <option value="study" className="bg-[#12121a]">Study</option>
                   <option value="code" className="bg-[#12121a]">Code</option>
-                  <option value="health" className="bg-[#12121a]">Health</option>
+                  <option value="study" className="bg-[#12121a]">Study</option>
+                  <option value="life" className="bg-[#12121a]">Life</option>
                 </select>
               </div>
 
               <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1.5 rounded-lg border border-white/5">
                 <span className="text-gray-400">Target 🍅:</span>
                 <input
-                  type="number"
-                  min="1" max="10"
+                  type="number" min="1" max="10"
                   value={newEst}
                   onChange={e => setNewEst(e.target.value)}
                   className="w-8 bg-transparent text-white text-center font-mono font-bold focus:outline-none"
@@ -787,14 +992,13 @@
             </div>
           </form>
 
-          {/* Filter Pills */}
-          <div className="flex items-center justify-between border-b border-white/5 pb-3">
+          <div className="flex items-center justify-between border-b border-white/5 pb-2">
             <div className="flex gap-1">
               {['all', 'active', 'done'].map(f => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold capitalize tracking-wide transition-colors ${
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold capitalize ${
                     filter === f ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'
                   }`}
                 >
@@ -806,18 +1010,18 @@
             {tasks.some(t => t.completed) && (
               <button 
                 onClick={clearCompleted} 
-                className="text-[11px] text-gray-500 hover:text-red-400 transition-colors uppercase tracking-wider font-semibold"
+                className="text-[11px] text-gray-500 hover:text-red-400 uppercase tracking-wider font-semibold"
               >
                 Clear Done
               </button>
             )}
           </div>
 
-          {/* Task List */}
-          <div className="space-y-2.5 max-h-[48vh] overflow-y-auto scrollbar-hide pr-1">
+          {/* Tasks List with Subtasks */}
+          <div className="space-y-3 max-h-[50vh] overflow-y-auto scrollbar-hide pr-1">
             {filtered.length === 0 ? (
               <div className="text-center py-10 text-gray-500 text-xs tracking-widest uppercase">
-                No items in this filter
+                No active tasks in database
               </div>
             ) : (
               filtered.map(t => {
@@ -825,83 +1029,103 @@
                 return (
                   <div
                     key={t.id}
-                    className={`group relative flex items-center gap-3 p-3.5 rounded-2xl border transition-all duration-200 ${
+                    className={`group p-3.5 rounded-2xl border transition-all ${
                       isCurrent 
                         ? 'bg-blue-500/10 border-blue-500/40 shadow-lg shadow-blue-500/5' 
                         : 'bg-white/5 border-white/5 hover:border-white/15'
                     }`}
                   >
-                    {/* Checkbox */}
-                    <button
-                      onClick={() => toggleTask(t.id)}
-                      className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-colors ${
-                        t.completed ? 'bg-emerald-500 border-emerald-500 text-black' : 'border-white/20 hover:border-white/50'
-                      }`}
-                    >
-                      {t.completed && <Icons.Check />}
-                    </button>
-
-                    {/* Title / Inline Edit */}
-                    <div className="flex-1 min-w-0">
-                      {editingId === t.id ? (
-                        <input
-                          type="text"
-                          value={editText}
-                          autoFocus
-                          onChange={e => setEditText(e.target.value)}
-                          onBlur={() => saveEdit(t.id)}
-                          onKeyDown={e => e.key === 'Enter' && saveEdit(t.id)}
-                          className="w-full bg-black/40 border border-blue-500/50 rounded px-2 py-0.5 text-sm text-white focus:outline-none"
-                        />
-                      ) : (
-                        <div 
-                          onDoubleClick={() => { setEditingId(t.id); setEditText(t.title); }}
-                          className={`text-sm truncate cursor-pointer font-medium ${t.completed ? 'line-through text-gray-500' : 'text-gray-200'}`}
-                        >
-                          {t.title}
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded">
-                          #{t.tag}
-                        </span>
-
-                        {/* Pomodoro Tracker */}
-                        <div 
-                          className="flex items-center gap-1 cursor-pointer" 
-                          title="Click to add completed session"
-                          onClick={() => incrementAct(t.id)}
-                        >
-                          <span className="text-xs">🍅</span>
-                          <span className="text-[11px] font-mono text-gray-300">
-                            {t.act}/{t.est}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Target Pin Button */}
-                    {!t.completed && (
+                    <div className="flex items-center gap-3">
                       <button
-                        onClick={() => setActiveId(isCurrent ? null : t.id)}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold tracking-wider uppercase transition-all shrink-0 ${
-                          isCurrent
-                            ? 'bg-blue-500 text-black shadow-md shadow-blue-500/20'
-                            : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                        onClick={() => toggleTask(t.id)}
+                        className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-colors ${
+                          t.completed ? 'bg-emerald-500 border-emerald-500 text-black' : 'border-white/20'
                         }`}
                       >
-                        {isCurrent ? 'Focusing' : 'Focus'}
+                        {t.completed && <Icons.Check />}
                       </button>
-                    )}
 
-                    {/* Delete */}
-                    <button
-                      onClick={() => deleteTask(t.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-500 hover:text-red-400 transition-opacity"
-                    >
-                      <Icons.Trash />
-                    </button>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-sm truncate font-medium ${t.completed ? 'line-through text-gray-500' : 'text-gray-200'}`}>
+                          {t.title}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded">
+                            #{t.tag}
+                          </span>
+                          <div 
+                            className="flex items-center gap-1 cursor-pointer" 
+                            title="Add completed pomodoro"
+                            onClick={() => incrementAct(t.id)}
+                          >
+                            <span className="text-xs">🍅</span>
+                            <span className="text-[11px] font-mono text-gray-300">{t.act}/{t.est}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {!t.completed && (
+                        <button
+                          onClick={() => setActiveId(isCurrent ? null : t.id)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase transition-all ${
+                            isCurrent ? 'bg-blue-500 text-black' : 'bg-white/5 text-gray-400 hover:text-white'
+                          }`}
+                        >
+                          {isCurrent ? 'Target' : 'Focus'}
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => deleteTask(t.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-500 hover:text-red-400"
+                      >
+                        <Icons.Trash />
+                      </button>
+                    </div>
+
+                    {/* Subtasks Checklist */}
+                    <div className="mt-3 pl-8 space-y-1.5 border-t border-white/5 pt-2">
+                      {t.subtasks && t.subtasks.map(st => (
+                        <div key={st.id} className="flex items-center gap-2 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={st.completed}
+                            onChange={() => toggleSubtask(t.id, st.id)}
+                            className="w-3.5 h-3.5 rounded accent-blue-500 bg-white/10"
+                          />
+                          <span className={`${st.completed ? 'line-through text-gray-500' : 'text-gray-300'}`}>
+                            {st.title}
+                          </span>
+                        </div>
+                      ))}
+
+                      {subInputTaskId === t.id ? (
+                        <div className="flex items-center gap-2 mt-2">
+                          <input
+                            type="text"
+                            value={subTitle}
+                            placeholder="New sub-step..."
+                            autoFocus
+                            onChange={e => setSubTitle(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleSubAdd(t.id)}
+                            className="bg-black/40 border border-white/20 rounded px-2 py-1 text-xs text-white flex-1 focus:outline-none"
+                          />
+                          <button
+                            onClick={() => handleSubAdd(t.id)}
+                            className="text-[11px] font-bold text-blue-400 uppercase"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setSubInputTaskId(t.id)}
+                          className="text-[10px] text-gray-500 hover:text-gray-300 font-semibold tracking-wider uppercase mt-1 block"
+                        >
+                          + Add Sub-task
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })
@@ -911,144 +1135,306 @@
       );
     }
 
-    // --- AUDIO & AMBIENCE PANEL ---
-    function AudioPanelContent({ accentColor }) {
-      const [levels, setLevels] = useState({
-        brown: 0,
-        rain: 0,
-        hum: 0,
-        binaural: 0
-      });
+    // --- AUDIO & CUSTOM MUSIC PLAYER PANEL ---
+    function MusicContent({ musicPlayer, accentColor }) {
+      const {
+        playlist, currentTrack, isPlaying, currentTime, duration,
+        volume, setVolume, repeatMode, setRepeatMode, isShuffle, setIsShuffle,
+        duckOnBreak, setDuckOnBreak,
+        togglePlay, handleNext, handlePrev, seek, addTracks, removeTrack, playTrackAtIndex
+      } = musicPlayer;
 
-      const handleSlider = (type, val) => {
+      const [ambience, setAmbience] = useState({ brown: 0, rain: 0, hum: 0, binaural: 0 });
+      const fileInputRef = useRef();
+
+      const handleAmbSlider = (type, val) => {
         const v = parseFloat(val);
-        setLevels(prev => ({ ...prev, [type]: v }));
-        if (v === 0) {
-          soundEngine.stopAmbience(type);
-        } else {
-          soundEngine.startAmbience(type, v);
-        }
+        setAmbience(p => ({ ...p, [type]: v }));
+        if (v === 0) soundEngine.stopAmbience(type);
+        else soundEngine.startAmbience(type, v);
       };
 
       return (
         <div className="space-y-6">
-          <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-            <h4 className="text-xs uppercase tracking-widest text-gray-400 font-bold mb-4">Built-in Soundscapes</h4>
-            <div className="space-y-5">
-              <div>
-                <div className="flex justify-between text-xs font-medium text-gray-300 mb-2">
-                  <span>Brown Noise (Deep Focus)</span>
-                  <span className="font-mono">{Math.round(levels.brown * 100)}%</span>
-                </div>
-                <input
-                  type="range" min="0" max="1" step="0.02"
-                  value={levels.brown}
-                  onChange={e => handleSlider('brown', e.target.value)}
-                  className="w-full"
-                />
+          {/* Active Music Player HUD */}
+          <div className="p-5 rounded-2xl bg-white/5 border border-white/10 relative overflow-hidden">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] uppercase font-mono tracking-widest text-blue-400 font-bold">
+                Custom Music Deck
+              </span>
+              <span className="text-[10px] font-mono text-gray-400">
+                {playlist.length} track(s) loaded
+              </span>
+            </div>
+
+            <div className="text-sm font-semibold text-white truncate mb-3">
+              {currentTrack ? currentTrack.name : 'No custom music selected'}
+            </div>
+
+            {/* Timeline Scrubber */}
+            <div className="space-y-1">
+              <input
+                type="range"
+                min="0"
+                max={duration || 100}
+                value={currentTime}
+                onChange={e => seek(parseFloat(e.target.value))}
+                className="w-full"
+              />
+              <div className="flex justify-between text-[10px] font-mono text-gray-400">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(duration)}</span>
+              </div>
+            </div>
+
+            {/* Controls Bar */}
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsShuffle(!isShuffle)}
+                  className={`p-1.5 rounded-lg text-xs ${isShuffle ? 'text-blue-400 bg-blue-500/10' : 'text-gray-500'}`}
+                  title="Shuffle"
+                >
+                  🔀
+                </button>
+                <button
+                  onClick={() => setRepeatMode(m => m === 'all' ? 'one' : m === 'one' ? 'off' : 'all')}
+                  className={`p-1.5 rounded-lg text-xs font-mono font-bold ${repeatMode !== 'off' ? 'text-blue-400 bg-blue-500/10' : 'text-gray-500'}`}
+                  title="Repeat Mode"
+                >
+                  {repeatMode === 'one' ? '🔂 1' : '🔁 All'}
+                </button>
               </div>
 
-              <div>
-                <div className="flex justify-between text-xs font-medium text-gray-300 mb-2">
-                  <span>Gentle Rainfall</span>
-                  <span className="font-mono">{Math.round(levels.rain * 100)}%</span>
-                </div>
-                <input
-                  type="range" min="0" max="1" step="0.02"
-                  value={levels.rain}
-                  onChange={e => handleSlider('rain', e.target.value)}
-                  className="w-full"
-                />
+              <div className="flex items-center gap-3">
+                <button onClick={handlePrev} className="p-2 text-gray-300 hover:text-white">
+                  <Icons.Prev />
+                </button>
+                <button
+                  onClick={togglePlay}
+                  className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg active:scale-95"
+                >
+                  {isPlaying ? <Icons.Pause /> : <Icons.Play />}
+                </button>
+                <button onClick={handleNext} className="p-2 text-gray-300 hover:text-white">
+                  <Icons.Next />
+                </button>
               </div>
 
-              <div>
-                <div className="flex justify-between text-xs font-medium text-gray-300 mb-2">
-                  <span>Warm Sub-Bass Hum</span>
-                  <span className="font-mono">{Math.round(levels.hum * 100)}%</span>
-                </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-gray-400">🔊</span>
                 <input
-                  type="range" min="0" max="1" step="0.02"
-                  value={levels.hum}
-                  onChange={e => handleSlider('hum', e.target.value)}
-                  className="w-full"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs font-medium text-gray-300 mb-2">
-                  <span>14Hz Flow Binaural Beat</span>
-                  <span className="font-mono">{Math.round(levels.binaural * 100)}%</span>
-                </div>
-                <input
-                  type="range" min="0" max="1" step="0.02"
-                  value={levels.binaural}
-                  onChange={e => handleSlider('binaural', e.target.value)}
-                  className="w-full"
+                  type="range" min="0" max="1" step="0.05"
+                  value={volume}
+                  onChange={e => setVolume(parseFloat(e.target.value))}
+                  className="w-16"
                 />
               </div>
             </div>
           </div>
 
-          <div className="text-center">
-            <button
-              onClick={() => {
-                setLevels({ brown: 0, rain: 0, hum: 0, binaural: 0 });
-                ['brown', 'rain', 'hum', 'binaural'].forEach(s => soundEngine.stopAmbience(s));
-              }}
-              className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-gray-400 bg-white/5 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              Mute All Ambience
-            </button>
+          {/* Upload Custom Music Section */}
+          <div 
+            onClick={() => fileInputRef.current.click()}
+            className="border-2 border-dashed border-white/10 hover:border-blue-500/50 rounded-2xl p-4 text-center cursor-pointer bg-white/[0.02] hover:bg-white/[0.04] transition-all"
+          >
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              multiple 
+              accept="audio/*" 
+              className="hidden" 
+              onChange={e => { if (e.target.files?.length) addTracks(e.target.files); }}
+            />
+            <div className="flex flex-col items-center gap-1">
+              <Icons.Upload />
+              <div className="text-xs font-bold uppercase tracking-wider text-gray-200 mt-1">Upload Music Files</div>
+              <div className="text-[10px] text-gray-500 font-mono">Supports .MP3, .WAV, .FLAC, .OGG (Stored Offline)</div>
+            </div>
+          </div>
+
+          {/* Playlist Table */}
+          {playlist.length > 0 && (
+            <div className="space-y-1.5 max-h-36 overflow-y-auto scrollbar-hide">
+              {playlist.map((t, idx) => (
+                <div
+                  key={t.id}
+                  onClick={() => playTrackAtIndex(idx)}
+                  className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer text-xs border ${
+                    currentTrack?.id === t.id 
+                      ? 'bg-blue-500/10 border-blue-500/40 text-blue-300' 
+                      : 'bg-white/5 border-transparent text-gray-300 hover:bg-white/10'
+                  }`}
+                >
+                  <div className="truncate flex-1 pr-2">
+                    <span className="font-mono text-gray-500 mr-2">{idx + 1}.</span>
+                    {t.name}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono text-gray-500">{t.size}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeTrack(t.id); }}
+                      className="text-gray-500 hover:text-red-400 p-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Ambience Synthesizer Layer */}
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-3">
+            <h4 className="text-[10px] uppercase font-mono tracking-widest text-gray-400 font-bold">
+              Background Noise Generator
+            </h4>
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div>
+                <div className="flex justify-between text-gray-300 mb-1">
+                  <span>Brown Noise</span>
+                  <span className="font-mono text-[10px]">{Math.round(ambience.brown * 100)}%</span>
+                </div>
+                <input
+                  type="range" min="0" max="1" step="0.05"
+                  value={ambience.brown}
+                  onChange={e => handleAmbSlider('brown', e.target.value)}
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-gray-300 mb-1">
+                  <span>Rainfall</span>
+                  <span className="font-mono text-[10px]">{Math.round(ambience.rain * 100)}%</span>
+                </div>
+                <input
+                  type="range" min="0" max="1" step="0.05"
+                  value={ambience.rain}
+                  onChange={e => handleAmbSlider('rain', e.target.value)}
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-gray-300 mb-1">
+                  <span>Deep Cosmic Hum</span>
+                  <span className="font-mono text-[10px]">{Math.round(ambience.hum * 100)}%</span>
+                </div>
+                <input
+                  type="range" min="0" max="1" step="0.05"
+                  value={ambience.hum}
+                  onChange={e => handleAmbSlider('hum', e.target.value)}
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-gray-300 mb-1">
+                  <span>14Hz Flow Beat</span>
+                  <span className="font-mono text-[10px]">{Math.round(ambience.binaural * 100)}%</span>
+                </div>
+                <input
+                  type="range" min="0" max="1" step="0.05"
+                  value={ambience.binaural}
+                  onChange={e => handleAmbSlider('binaural', e.target.value)}
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between">
+              <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={duckOnBreak}
+                  onChange={e => setDuckOnBreak(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded accent-blue-500"
+                />
+                Auto-dim volume during break intervals
+              </label>
+            </div>
           </div>
         </div>
       );
     }
 
-    // --- TELEMETRY & STATS ---
-    function StatsPanelContent({ stats, accentColor }) {
-      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const today = new Date().toDateString();
+    // --- SYSTEM PARAMETERS & BACKUP PANEL ---
+    function SettingsContent({ timer, setSettings }) {
+      const { settings } = timer;
+      const update = (k, v) => setSettings(p => ({ ...p, [k]: v }));
+
+      const handleExport = () => {
+        const data = {
+          settings,
+          stats: timer.stats,
+          tasks: storage.get('flow_tasks_v3', []),
+          exportDate: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `flow-backup-${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+      };
+
+      const handleImport = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = JSON.parse(event.target.result);
+            if (data.settings) storage.set('flow_settings_v3', data.settings);
+            if (data.stats) storage.set('flow_stats_v3', data.stats);
+            if (data.tasks) storage.set('flow_tasks_v3', data.tasks);
+            alert('Backup successfully imported! Reloading...');
+            window.location.reload();
+          } catch(err) {
+            alert('Invalid JSON file format.');
+          }
+        };
+        reader.readAsText(file);
+      };
 
       return (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/5 text-center">
-              <span className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">Today Focus</span>
-              <div className="text-3xl font-light font-mono text-white mt-1">
-                {stats.todayMinutes || 0} <span className="text-sm font-sans text-gray-500">min</span>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/5 text-center">
-              <span className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">Intervals Done</span>
-              <div className="text-3xl font-light font-mono mt-1" style={{ color: accentColor }}>
-                {stats.totalFocusSessions || 0}
-              </div>
-            </div>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-white/5 border border-white/5 space-y-4">
-            <div className="text-xs uppercase tracking-widest text-gray-400 font-bold">Focus Consistency Streak</div>
-            <div className="flex items-center gap-3">
-              <div className="text-4xl">🔥</div>
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-3">
+            <h4 className="text-[10px] uppercase font-mono tracking-widest text-gray-400 font-bold">Interval Durations (Minutes)</h4>
+            <div className="grid grid-cols-3 gap-3 text-center">
               <div>
-                <div className="text-xl font-bold text-white font-mono">{stats.streak || 1} Day Streak</div>
-                <div className="text-xs text-gray-400">Keep it alive by completing 1 session today.</div>
+                <label className="text-[10px] uppercase text-gray-400 block mb-1">Focus</label>
+                <input
+                  type="number" min="1" max="180"
+                  value={settings.pomodoroFocus}
+                  onChange={e => update('pomodoroFocus', parseInt(e.target.value) || 25)}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl py-2 text-center text-sm font-mono text-white focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase text-gray-400 block mb-1">Short Rest</label>
+                <input
+                  type="number" min="1" max="60"
+                  value={settings.pomodoroShort}
+                  onChange={e => update('pomodoroShort', parseInt(e.target.value) || 5)}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl py-2 text-center text-sm font-mono text-white focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase text-gray-400 block mb-1">Long Rest</label>
+                <input
+                  type="number" min="1" max="90"
+                  value={settings.pomodoroLong}
+                  onChange={e => update('pomodoroLong', parseInt(e.target.value) || 15)}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl py-2 text-center text-sm font-mono text-white focus:outline-none"
+                />
               </div>
             </div>
           </div>
-        </div>
-      );
-    }
 
-    // --- SYSTEM CONFIG ---
-    function SettingsPanelContent({ settings, setSettings, onTestSound }) {
-      const update = (key, val) => setSettings(s => ({ ...s, [key]: val }));
-
-      return (
-        <div className="space-y-6">
-          <div className="space-y-4">
-            <h4 className="text-xs uppercase tracking-widest text-gray-400 font-bold">Notification Audio</h4>
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-3">
+            <h4 className="text-[10px] uppercase font-mono tracking-widest text-gray-400 font-bold">Chime Alert</h4>
             <div className="flex gap-2">
               {['bell', 'digital', 'chime'].map(sound => (
                 <button
@@ -1057,10 +1443,8 @@
                     update('chimeSound', sound);
                     soundEngine.playTone(sound);
                   }}
-                  className={`flex-1 py-2.5 rounded-xl text-xs font-semibold capitalize border transition-all ${
-                    settings.chimeSound === sound 
-                      ? 'border-blue-500 bg-blue-500/10 text-white' 
-                      : 'border-white/10 text-gray-400 hover:text-white'
+                  className={`flex-1 py-2 rounded-xl text-xs font-semibold capitalize border ${
+                    settings.chimeSound === sound ? 'border-blue-500 bg-blue-500/10 text-white' : 'border-white/10 text-gray-400'
                   }`}
                 >
                   {sound}
@@ -1069,62 +1453,75 @@
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h4 className="text-xs uppercase tracking-widest text-gray-400 font-bold">Accent Core Color</h4>
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-3">
+            <h4 className="text-[10px] uppercase font-mono tracking-widest text-gray-400 font-bold">Accent Core</h4>
             <div className="flex gap-3">
-              {['#3b82f6', '#10b981', '#8b5cf6', '#f43f5e', '#f59e0b', '#ffffff'].map(c => (
+              {['#3b82f6', '#10b981', '#8b5cf6', '#f43f5e', '#f59e0b', '#06b6d4'].map(c => (
                 <button
                   key={c}
                   onClick={() => update('accentColor', c)}
-                  className={`w-9 h-9 rounded-full transition-transform ${settings.accentColor === c ? 'scale-125 ring-2 ring-white/50' : 'hover:scale-110'}`}
+                  className={`w-8 h-8 rounded-full ${settings.accentColor === c ? 'ring-2 ring-white scale-110' : ''}`}
                   style={{ backgroundColor: c }}
                 />
               ))}
             </div>
           </div>
 
-          <div className="pt-2 border-t border-white/5">
+          <div className="flex gap-3 pt-2">
             <button
-              onClick={() => notifier.request()}
-              className="w-full py-3 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold uppercase tracking-wider text-white transition-colors"
+              onClick={handleExport}
+              className="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold uppercase tracking-wider text-white"
             >
-              Test / Grant Notifications
+              Export JSON
             </button>
+            <label className="flex-1 py-3 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-bold uppercase tracking-wider text-gray-300 text-center cursor-pointer">
+              Import JSON
+              <input type="file" accept=".json" onChange={handleImport} className="hidden" />
+            </label>
           </div>
         </div>
       );
     }
 
-    // --- ROOT APP ---
+    // --- MAIN APP CONTROLLER ---
     function App() {
       const timer = useTimer();
       const taskManager = useTaskManager();
-      
-      const [drawerOpen, setDrawerOpen] = useState(null); // 'tasks' | 'audio' | 'stats' | 'settings' | null
-      const [isZenMode, setIsZenMode] = useState(false);
+      const isBreak = timer.phase.toLowerCase().includes('break');
+      const musicPlayer = useMusicPlayer(isBreak);
 
-      // Keyboard Shortcut Map
+      const [drawerOpen, setDrawerOpen] = useState(null);
+      const [isZenMode, setIsZenMode] = useState(false);
+      const [intention, setIntention] = useState(() => storage.get('flow_daily_intention', 'Ship next-gen architecture'));
+      const [isEditingIntention, setIsEditingIntention] = useState(false);
+
+      const toggleFullscreen = () => {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+        else document.exitFullscreen().catch(()=>{});
+      };
+
+      // Keyboard Controls
       useEffect(() => {
-        const handleKeyDown = (e) => {
+        const handleKeys = (e) => {
           if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-          const key = e.key.toLowerCase();
+          const k = e.key.toLowerCase();
           if (e.code === 'Space') {
             e.preventDefault();
             timer.toggle();
-          } else if (key === 'r') {
+          } else if (k === 'z') {
+            setIsZenMode(p => !p);
+          } else if (k === 'r') {
             timer.reset();
-          } else if (key === 'z') {
-            setIsZenMode(prev => !prev);
           }
         };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        window.addEventListener('keydown', handleKeys);
+        return () => window.removeEventListener('keydown', handleKeys);
       }, [timer]);
 
       return (
         <div className="min-h-screen flex flex-col justify-between relative overflow-hidden bg-grid-cyber pb-28 sm:pb-8">
           
-          {/* Top Bar Navigation */}
+          {/* TOP BAR */}
           <header className={`w-full max-w-5xl mx-auto px-6 py-5 flex items-center justify-between transition-opacity duration-500 z-20 ${
             isZenMode ? 'opacity-0 pointer-events-none' : 'opacity-100'
           }`}>
@@ -1134,53 +1531,80 @@
                 style={{ backgroundColor: timer.settings.accentColor }}
               />
               <span className="font-mono text-xs tracking-[0.25em] uppercase font-bold text-gray-300">
-                FLOW // OS
+                FLOW // HUD
               </span>
             </div>
 
-            {/* Quick Session Presets */}
-            <div className="hidden sm:flex items-center gap-1.5 bg-white/5 p-1 rounded-full border border-white/5">
-              {[
-                { name: '25/5', focus: 25, rest: 5 },
-                { name: '50/10', focus: 50, rest: 10 },
-                { name: '15/3', focus: 15, rest: 3 }
-              ].map(p => (
-                <button
-                  key={p.name}
-                  onClick={() => timer.applyPreset(p.focus, p.rest, p.name)}
-                  className={`px-3 py-1 rounded-full text-xs font-mono font-medium transition-all ${
-                    timer.settings.preset === p.name ? 'bg-white/15 text-white' : 'text-gray-400 hover:text-white'
-                  }`}
+            {/* Daily Intention Banner */}
+            <div className="hidden md:flex items-center gap-2">
+              {isEditingIntention ? (
+                <input
+                  type="text"
+                  value={intention}
+                  autoFocus
+                  onChange={e => setIntention(e.target.value)}
+                  onBlur={() => { storage.set('flow_daily_intention', intention); setIsEditingIntention(false); }}
+                  onKeyDown={e => { if (e.key === 'Enter') { storage.set('flow_daily_intention', intention); setIsEditingIntention(false); }}}
+                  className="bg-black/60 border border-white/20 rounded-full px-4 py-1 text-xs text-white focus:outline-none"
+                />
+              ) : (
+                <div 
+                  onClick={() => setIsEditingIntention(true)}
+                  className="text-xs font-mono text-gray-400 hover:text-white cursor-pointer px-4 py-1 rounded-full bg-white/5 border border-white/5"
+                  title="Click to edit daily objective"
                 >
-                  {p.name}
-                </button>
-              ))}
+                  🎯 {intention}
+                </div>
+              )}
             </div>
 
-            {/* Top Right Controls */}
+            {/* Top Action Tools */}
             <div className="flex items-center gap-2">
+              {/* Timer Mode Selection */}
+              <div className="flex bg-white/5 p-1 rounded-full border border-white/5 mr-2">
+                {['pomodoro', 'flowtime', 'stopwatch'].map(m => (
+                  <button
+                    key={m}
+                    onClick={() => timer.setMode(m)}
+                    className={`px-3 py-1 rounded-full text-[10px] font-mono uppercase font-bold transition-all ${
+                      timer.mode === m ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={toggleFullscreen}
+                title="Toggle Fullscreen"
+                className="p-2.5 rounded-full bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+              >
+                <Icons.Expand />
+              </button>
+
               <button
                 onClick={() => setIsZenMode(!isZenMode)}
-                title="Zen Mode (Z)"
-                className="p-2.5 rounded-full bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                title="Zen Focus (Z)"
+                className="p-2.5 rounded-full bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
               >
                 <Icons.Zen />
               </button>
             </div>
           </header>
 
-          {/* Central Command Timer HUD */}
+          {/* MAIN COMMAND INTERFACE */}
           <main className="flex-1 flex flex-col items-center justify-center px-4 relative z-10 my-auto">
             
             {/* Active Target Banner */}
             {taskManager.activeTask && (
-              <div className={`mb-6 transition-all duration-500 ${isZenMode ? 'opacity-40' : 'opacity-100'}`}>
+              <div className={`mb-4 transition-all duration-500 ${isZenMode ? 'opacity-30' : 'opacity-100'}`}>
                 <div 
                   onClick={() => setDrawerOpen('tasks')}
-                  className="glass px-5 py-2.5 rounded-full flex items-center gap-3 cursor-pointer hover:border-white/30 transition-all border border-white/10 shadow-xl"
+                  className="glass px-5 py-2 rounded-full flex items-center gap-3 cursor-pointer hover:border-white/30 transition-all border border-white/10 shadow-xl"
                 >
                   <span className="w-2 h-2 rounded-full animate-ping" style={{ backgroundColor: timer.settings.accentColor }} />
-                  <span className="text-xs font-semibold text-gray-200 truncate max-w-[240px] sm:max-w-md">
+                  <span className="text-xs font-semibold text-gray-200 truncate max-w-[200px] sm:max-w-xs">
                     {taskManager.activeTask.title}
                   </span>
                   <span className="text-xs font-mono text-gray-400">
@@ -1190,61 +1614,82 @@
               </div>
             )}
 
-            {/* Circular Timer Ring */}
-            <TimerDisplay
+            {/* Presets Bar */}
+            {timer.mode === 'pomodoro' && (
+              <div className={`flex items-center gap-1.5 mb-6 transition-all duration-500 ${isZenMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                {[
+                  { label: '25/5', focus: 25, rest: 5 },
+                  { label: '50/10', focus: 50, rest: 10 },
+                  { label: '90/20', focus: 90, rest: 20 }
+                ].map(p => (
+                  <button
+                    key={p.label}
+                    onClick={() => timer.applyPreset(p.focus, p.rest, p.label)}
+                    className={`px-3 py-1 rounded-full text-xs font-mono font-medium border ${
+                      timer.settings.preset === p.label 
+                        ? 'border-blue-500/50 bg-blue-500/10 text-white' 
+                        : 'border-white/5 text-gray-400 hover:text-white bg-white/5'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* SVG Timer HUD */}
+            <TimerRing
               time={timer.time}
               duration={timer.duration}
               isRunning={timer.isRunning}
               phase={timer.phase}
               accentColor={timer.settings.accentColor}
               onToggle={timer.toggle}
+              onAdjust={timer.adjustTime}
             />
 
-            {/* Primary Action Controls */}
+            {/* Main Play/Pause Controls */}
             <div className={`mt-8 flex items-center gap-4 transition-all duration-500 ${
               isZenMode ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
             }`}>
-              {/* Reset */}
               <button
                 onClick={timer.reset}
-                title="Reset Timer"
-                className="p-3.5 rounded-full bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all active:scale-95 border border-white/5"
+                title="Reset Interval"
+                className="p-3.5 rounded-full bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 active:scale-95 border border-white/5"
               >
                 <Icons.Reset />
               </button>
 
-              {/* Central Play/Pause Button */}
               <button
                 onClick={timer.toggle}
-                className="px-8 py-4 rounded-full text-black font-bold uppercase tracking-widest text-sm flex items-center gap-3 shadow-xl transition-all duration-200 active:scale-95"
+                className="px-8 py-4 rounded-full text-black font-bold uppercase tracking-widest text-sm flex items-center gap-3 shadow-2xl transition-all duration-200 active:scale-95"
                 style={{
                   backgroundColor: timer.isRunning ? '#ffffff' : timer.settings.accentColor,
-                  boxShadow: `0 0 30px ${timer.settings.accentColor}40`
+                  boxShadow: `0 0 35px ${timer.settings.accentColor}40`
                 }}
               >
                 {timer.isRunning ? <Icons.Pause /> : <Icons.Play />}
-                <span>{timer.isRunning ? 'Pause' : 'Start Focus'}</span>
+                <span>{timer.isRunning ? 'Pause' : 'Engage'}</span>
               </button>
 
-              {/* Skip */}
               <button
                 onClick={timer.skip}
-                title="Skip to next"
-                className="p-3.5 rounded-full bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all active:scale-95 border border-white/5"
+                title="Skip to Next"
+                className="p-3.5 rounded-full bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 active:scale-95 border border-white/5"
               >
                 <Icons.Skip />
               </button>
             </div>
           </main>
 
-          {/* Bottom Floating App Dock */}
+          {/* DOCK BAR */}
           <nav className={`fixed bottom-5 left-1/2 -translate-x-1/2 glass px-3 py-2 rounded-full flex items-center gap-1 sm:gap-2 shadow-2xl z-30 transition-all duration-500 ${
             isZenMode ? 'opacity-0 translate-y-10 pointer-events-none' : 'opacity-100 translate-y-0'
           }`}>
             <button
               onClick={() => setDrawerOpen('tasks')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${
-                drawerOpen === 'tasks' ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                drawerOpen === 'tasks' ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
               <Icons.Tasks />
@@ -1259,76 +1704,36 @@
             <button
               onClick={() => setDrawerOpen('audio')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${
-                drawerOpen === 'audio' ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                drawerOpen === 'audio' ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
               <Icons.Music />
-              <span className="hidden sm:inline">Ambience</span>
-            </button>
-
-            <button
-              onClick={() => setDrawerOpen('stats')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${
-                drawerOpen === 'stats' ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Icons.Stats />
-              <span className="hidden sm:inline">Telemetry</span>
+              <span className="hidden sm:inline">Music & Sound</span>
+              {musicPlayer.isPlaying && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />}
             </button>
 
             <button
               onClick={() => setDrawerOpen('settings')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${
-                drawerOpen === 'settings' ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                drawerOpen === 'settings' ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
               <Icons.Settings />
-              <span className="hidden sm:inline">System</span>
+              <span className="hidden sm:inline">Settings</span>
             </button>
           </nav>
 
-          {/* Drawer Panels */}
-          <Drawer
-            isOpen={drawerOpen === 'tasks'}
-            onClose={() => setDrawerOpen(null)}
-            title="Task Database"
-          >
-            <TaskPanelContent
-              taskManager={taskManager}
-              accentColor={timer.settings.accentColor}
-            />
+          {/* DRAWERS */}
+          <Drawer isOpen={drawerOpen === 'tasks'} onClose={() => setDrawerOpen(null)} title="Task Database & Objectives">
+            <TasksContent taskManager={taskManager} accentColor={timer.settings.accentColor} />
           </Drawer>
 
-          <Drawer
-            isOpen={drawerOpen === 'audio'}
-            onClose={() => setDrawerOpen(null)}
-            title="Audio Matrix & Ambience"
-          >
-            <AudioPanelContent
-              accentColor={timer.settings.accentColor}
-            />
+          <Drawer isOpen={drawerOpen === 'audio'} onClose={() => setDrawerOpen(null)} title="Audio Studio & Ambience Vault">
+            <MusicContent musicPlayer={musicPlayer} accentColor={timer.settings.accentColor} />
           </Drawer>
 
-          <Drawer
-            isOpen={drawerOpen === 'stats'}
-            onClose={() => setDrawerOpen(null)}
-            title="Focus Telemetry"
-          >
-            <StatsPanelContent
-              stats={timer.stats}
-              accentColor={timer.settings.accentColor}
-            />
-          </Drawer>
-
-          <Drawer
-            isOpen={drawerOpen === 'settings'}
-            onClose={() => setDrawerOpen(null)}
-            title="System Parameters"
-          >
-            <SettingsPanelContent
-              settings={timer.settings}
-              setSettings={timer.setSettings}
-            />
+          <Drawer isOpen={drawerOpen === 'settings'} onClose={() => setDrawerOpen(null)} title="System Parameters & Vault Backup">
+            <SettingsContent timer={timer} setSettings={timer.setSettings} />
           </Drawer>
 
         </div>
