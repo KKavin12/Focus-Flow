@@ -22,7 +22,7 @@
             mono: ['"JetBrains Mono"', 'monospace']
           },
           animation: {
-            'spin-slow': 'spin 45s linear infinite',
+            'spin-slow': 'spin 12s linear infinite',
             'pulse-glow': 'pulseGlow 2.5s ease-in-out infinite',
             'slide-in-right': 'slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
             'pulse-urgent': 'pulseUrgent 1.2s ease-in-out infinite'
@@ -104,25 +104,42 @@
       box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.05);
     }
 
+    /* Vinyl Album Art */
+    .vinyl-disc {
+      background: radial-gradient(circle, #1e1f2b 22%, #0e0e16 23%, #222332 42%, #0e0e16 43%, #1b1b26 68%, #09090f 100%);
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.08);
+    }
+
+    /* Equalizer Frequency Bars Animation */
+    @keyframes bounceEqualizer {
+      0%, 100% { height: 4px; }
+      50% { height: 18px; }
+    }
+    .eq-bar-1 { animation: bounceEqualizer 0.8s ease-in-out infinite 0.1s; }
+    .eq-bar-2 { animation: bounceEqualizer 0.65s ease-in-out infinite 0.25s; }
+    .eq-bar-3 { animation: bounceEqualizer 0.9s ease-in-out infinite 0.05s; }
+    .eq-bar-4 { animation: bounceEqualizer 0.7s ease-in-out infinite 0.35s; }
+    .eq-bar-5 { animation: bounceEqualizer 0.85s ease-in-out infinite 0.18s; }
+
     input[type=range] {
       -webkit-appearance: none;
       height: 6px;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.12);
       border-radius: 9999px;
       outline: none;
     }
     input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 15px;
-      height: 15px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
       background: #ffffff;
       cursor: pointer;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
       transition: transform 0.1s;
     }
     input[type=range]::-webkit-slider-thumb:hover {
-      transform: scale(1.25);
+      transform: scale(1.3);
     }
 
     .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -172,7 +189,7 @@
       async init() {
         if (this.db) return this.db;
         return new Promise((res, rej) => {
-          const req = indexedDB.open('flow_master_vault_v6', 1);
+          const req = indexedDB.open('flow_master_vault_v8', 1);
           req.onupgradeneeded = e => {
             const db = e.target.result;
             if (!db.objectStoreNames.contains('tracks')) {
@@ -208,10 +225,18 @@
           tx.objectStore('tracks').delete(id);
           tx.oncomplete = () => res();
         });
+      },
+      async clearTracks() {
+        const db = await this.init();
+        return new Promise(res => {
+          const tx = db.transaction('tracks', 'readwrite');
+          tx.objectStore('tracks').clear();
+          tx.oncomplete = () => res();
+        });
       }
     };
 
-    // --- SOUND ENGINE (CHIMES, REPEATING ALARM & SYNTHESIS) ---
+    // --- SOUND ENGINE (CHIMES, AMBIENCE & PROCEDURAL SYNTH) ---
     class SoundEngine {
       constructor() {
         this.ctx = null;
@@ -219,6 +244,8 @@
         this.nodes = {};
         this.alarmInterval = null;
         this.isAlarming = false;
+        this.lofiTimer = null;
+        this.isLofiPlaying = false;
       }
       init() {
         if (this.ctx) return;
@@ -318,6 +345,7 @@
         }
       }
 
+      // Ambient Synthesizers
       startAmbience(type, volume = 0.5) {
         this.init();
         if (this.ctx.state === 'suspended') this.ctx.resume();
@@ -382,6 +410,21 @@
           merger.connect(g);
           oscL.start(); oscR.start();
           this.nodes.alpha = { src: [oscL, oscR], gain: g };
+        } else if (type === 'vinyl') {
+          // Subtle Vinyl Crackle Noise
+          const sz = 2 * this.ctx.sampleRate;
+          const b = this.ctx.createBuffer(1, sz, this.ctx.sampleRate);
+          const d = b.getChannelData(0);
+          for (let i = 0; i < sz; i++) {
+            const crackle = Math.random() > 0.998 ? (Math.random() * 2 - 1) * 0.8 : 0;
+            d[i] = crackle + (Math.random() * 2 - 1) * 0.015;
+          }
+          const s = this.ctx.createBufferSource();
+          s.buffer = b; s.loop = true;
+          const f = this.ctx.createBiquadFilter();
+          f.type = 'highpass'; f.frequency.value = 1400;
+          s.connect(f).connect(g); s.start();
+          this.nodes.vinyl = { src: s, gain: g };
         }
       }
 
@@ -399,6 +442,72 @@
           } catch(e) {}
           delete this.nodes[type];
         }
+      }
+
+      stopAllAmbience() {
+        Object.keys(this.nodes).forEach(k => this.stopAmbience(k));
+      }
+
+      // Procedural Lo-Fi Chords Generator (Warm Electric Piano + Filter)
+      startProceduralLoFi(volume = 0.5) {
+        this.init();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        this.stopProceduralLoFi();
+        this.isLofiPlaying = true;
+
+        // Jazzy Lo-Fi Chord Progressions (frequencies in Hz)
+        const chordProgressions = [
+          [293.66, 349.23, 440.00, 523.25], // Dm7 (D4, F4, A4, C5)
+          [261.63, 329.63, 392.00, 493.88], // Cmaj7 (C4, E4, G4, B4)
+          [220.00, 261.63, 329.63, 392.00], // Am7 (A3, C4, E4, G4)
+          [349.23, 440.00, 523.25, 659.25]  // Fmaj7 (F4, A4, C5, E5)
+        ];
+        let chordIdx = 0;
+
+        const playChord = () => {
+          if (!this.isLofiPlaying || !this.ctx) return;
+          const now = this.ctx.currentTime;
+          const freqs = chordProgressions[chordIdx];
+          chordIdx = (chordIdx + 1) % chordProgressions.length;
+
+          const chordGain = this.ctx.createGain();
+          chordGain.gain.setValueAtTime(0.001, now);
+          chordGain.gain.linearRampToValueAtTime(volume * 0.18, now + 0.4);
+          chordGain.gain.exponentialRampToValueAtTime(0.001, now + 3.8);
+
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(750, now);
+          filter.Q.value = 1.2;
+
+          freqs.forEach(freq => {
+            const osc = this.ctx.createOscillator();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now);
+            // subtle pitch drift for analog lo-fi vibe
+            osc.detune.setValueAtTime((Math.random() * 8) - 4, now);
+            osc.connect(filter);
+            osc.start(now);
+            osc.stop(now + 3.9);
+          });
+
+          filter.connect(chordGain).connect(this.masterGain);
+        };
+
+        // Also add gentle vinyl crackle
+        this.startAmbience('vinyl', volume * 0.35);
+
+        playChord();
+        this.lofiTimer = setInterval(playChord, 4000);
+      }
+
+      stopProceduralLoFi() {
+        this.isLofiPlaying = false;
+        if (this.lofiTimer) {
+          clearInterval(this.lofiTimer);
+          this.lofiTimer = null;
+        }
+        this.stopAmbience('vinyl');
       }
     }
     const soundEngine = new SoundEngine();
@@ -440,7 +549,7 @@
     };
 
     function formatTime(secs) {
-      if (isNaN(secs)) return '0:00';
+      if (isNaN(secs) || secs < 0) return '0:00';
       const m = Math.floor(secs / 60);
       const s = Math.floor(secs % 60).toString().padStart(2, '0');
       return `${m}:${s}`;
@@ -506,11 +615,11 @@
 
     // --- HOOK: TIME BUDGETS & ACTIVITY CAP MANAGER ---
     function useBudgetManager(onLimitExceeded) {
-      const [budgets, setBudgets] = useState(() => storage.get('flow_budgets_v7', DEFAULT_TIME_BUDGETS));
-      useEffect(() => { storage.set('flow_budgets_v7', budgets); }, [budgets]);
+      const [budgets, setBudgets] = useState(() => storage.get('flow_budgets_v8', DEFAULT_TIME_BUDGETS));
+      useEffect(() => { storage.set('flow_budgets_v8', budgets); }, [budgets]);
 
-      const [usageMap, setUsageMap] = useState(() => storage.get('flow_budget_usage_v7', {}));
-      useEffect(() => { storage.set('flow_budget_usage_v7', usageMap); }, [usageMap]);
+      const [usageMap, setUsageMap] = useState(() => storage.get('flow_budget_usage_v8', {}));
+      useEffect(() => { storage.set('flow_budget_usage_v8', usageMap); }, [usageMap]);
 
       const [activeBudgetId, setActiveBudgetId] = useState('budget_tv_phone');
       const alertedTodayRef = useRef({});
@@ -622,24 +731,32 @@
       };
     }
 
-    // --- HOOK: COMPLETE MUSIC PLAYER ---
+    // --- HOOK: FULLY POLISHED MUSIC PLAYER ENGINE ---
     function useMusicPlayer(isBreak) {
       const [playlist, setPlaylist] = useState([]);
       const [currentIndex, setCurrentIndex] = useState(0);
       const [isPlaying, setIsPlaying] = useState(false);
+      const [isLoFiActive, setIsLoFiActive] = useState(false);
       const [currentTime, setCurrentTime] = useState(0);
       const [duration, setDuration] = useState(0);
-      const [volume, setVolume] = useState(0.8);
-      const [repeatMode, setRepeatMode] = useState('all'); // 'off' | 'all' | 'one'
-      const [isShuffle, setIsShuffle] = useState(false);
+      const [volume, setVolume] = useState(() => storage.get('flow_music_vol', 0.8));
+      const [repeatMode, setRepeatMode] = useState(() => storage.get('flow_music_repeat', 'all')); // 'off' | 'all' | 'one'
+      const [isShuffle, setIsShuffle] = useState(() => storage.get('flow_music_shuffle', false));
       const [duckOnBreak, setDuckOnBreak] = useState(true);
 
       const audioRef = useRef(new Audio());
       const currentTrack = playlist[currentIndex] || null;
 
+      useEffect(() => { storage.set('flow_music_vol', volume); }, [volume]);
+      useEffect(() => { storage.set('flow_music_repeat', repeatMode); }, [repeatMode]);
+      useEffect(() => { storage.set('flow_music_shuffle', isShuffle); }, [isShuffle]);
+
+      // Load tracks from IndexedDB
       useEffect(() => {
         idb.getAllTracks().then(tracks => {
-          setPlaylist(tracks.map(t => ({ ...t, url: URL.createObjectURL(t.file) })));
+          if (tracks.length > 0) {
+            setPlaylist(tracks.map(t => ({ ...t, url: URL.createObjectURL(t.file) })));
+          }
         });
       }, []);
 
@@ -650,7 +767,7 @@
         const onEnd = () => {
           if (repeatMode === 'one') {
             a.currentTime = 0;
-            a.play();
+            a.play().catch(()=>{});
           } else if (repeatMode === 'all') {
             handleNext();
           } else {
@@ -668,28 +785,54 @@
         };
       }, [currentIndex, playlist.length, repeatMode]);
 
+      // Volume with automatic ducking on breaks
       useEffect(() => {
-        audioRef.current.volume = isBreak && duckOnBreak ? volume * 0.25 : volume;
+        const effVol = isBreak && duckOnBreak ? volume * 0.25 : volume;
+        audioRef.current.volume = effVol;
       }, [volume, isBreak, duckOnBreak]);
 
       const playIndex = (idx) => {
         if (!playlist[idx]) return;
+        if (isLoFiActive) {
+          soundEngine.stopProceduralLoFi();
+          setIsLoFiActive(false);
+        }
         setCurrentIndex(idx);
         audioRef.current.src = playlist[idx].url;
         audioRef.current.play().then(() => setIsPlaying(true)).catch(()=>{});
       };
 
       const togglePlay = () => {
-        if (!currentTrack && playlist.length > 0) return playIndex(0);
-        if (isPlaying) { audioRef.current.pause(); setIsPlaying(false); }
-        else { audioRef.current.play().then(() => setIsPlaying(true)).catch(()=>{}); }
+        if (isLoFiActive) {
+          soundEngine.stopProceduralLoFi();
+          setIsLoFiActive(false);
+          setIsPlaying(false);
+          return;
+        }
+
+        if (!currentTrack) {
+          if (playlist.length > 0) return playIndex(0);
+          // If no local files exist, start procedural Lo-Fi automatically!
+          startLoFiRadio();
+          return;
+        }
+
+        if (isPlaying) {
+          audioRef.current.pause();
+          setIsPlaying(false);
+        } else {
+          audioRef.current.play().then(() => setIsPlaying(true)).catch(()=>{});
+        }
       };
 
       const handleNext = () => {
         if (playlist.length === 0) return;
         let nextIndex = currentIndex + 1;
-        if (isShuffle) nextIndex = Math.floor(Math.random() * playlist.length);
-        else if (nextIndex >= playlist.length) nextIndex = 0;
+        if (isShuffle) {
+          nextIndex = Math.floor(Math.random() * playlist.length);
+        } else if (nextIndex >= playlist.length) {
+          nextIndex = 0;
+        }
         playIndex(nextIndex);
       };
 
@@ -701,6 +844,11 @@
         }
         const prevIndex = currentIndex - 1 < 0 ? playlist.length - 1 : currentIndex - 1;
         playIndex(prevIndex);
+      };
+
+      const skip = (secs) => {
+        if (!audioRef.current) return;
+        audioRef.current.currentTime = Math.max(0, Math.min(duration, audioRef.current.currentTime + secs));
       };
 
       const addTracks = async (files) => {
@@ -731,17 +879,59 @@
         });
       };
 
+      const clearAllTracks = async () => {
+        audioRef.current.pause();
+        setIsPlaying(false);
+        await idb.clearTracks();
+        setPlaylist([]);
+        setCurrentIndex(0);
+      };
+
+      const startLoFiRadio = () => {
+        audioRef.current.pause();
+        soundEngine.startProceduralLoFi(volume);
+        setIsLoFiActive(true);
+        setIsPlaying(true);
+      };
+
+      const stopLoFiRadio = () => {
+        soundEngine.stopProceduralLoFi();
+        setIsLoFiActive(false);
+        setIsPlaying(false);
+      };
+
       return {
-        playlist, currentTrack, isPlaying, currentTime, duration,
-        volume, setVolume, repeatMode, setRepeatMode, isShuffle, setIsShuffle,
-        duckOnBreak, setDuckOnBreak,
-        togglePlay, handleNext, handlePrev, addTracks, removeTrack, playIndex, seek: (t) => { audioRef.current.currentTime = t; setCurrentTime(t); }
+        playlist,
+        currentTrack: isLoFiActive ? { name: 'Procedural Lo-Fi Radio (Vinyl & Chords)', size: 'Live Synth' } : currentTrack,
+        isPlaying,
+        isLoFiActive,
+        currentTime: isLoFiActive ? 0 : currentTime,
+        duration: isLoFiActive ? 0 : duration,
+        volume,
+        setVolume,
+        repeatMode,
+        setRepeatMode,
+        isShuffle,
+        setIsShuffle,
+        duckOnBreak,
+        setDuckOnBreak,
+        togglePlay,
+        handleNext,
+        handlePrev,
+        skip,
+        addTracks,
+        removeTrack,
+        clearAllTracks,
+        playIndex,
+        startLoFiRadio,
+        stopLoFiRadio,
+        seek: (t) => { audioRef.current.currentTime = t; setCurrentTime(t); }
       };
     }
 
     // --- HOOK: TIMER SYSTEM WITH CUSTOMIZABLE BREAKS FOR BOTH FOCUS & BUDGET MODES ---
     function useTimer(onAlarmTrigger, onBudgetTick, activeBudget) {
-      const [settings, setSettings] = useState(() => storage.get('flow_settings_v7', {
+      const [settings, setSettings] = useState(() => storage.get('flow_settings_v8', {
         pomodoroFocus: 25,
         pomodoroShort: 5,
         pomodoroLong: 15,
@@ -752,15 +942,15 @@
         accentColor: '#3b82f6',
         preset: '25/5'
       }));
-      useEffect(() => { storage.set('flow_settings_v7', settings); }, [settings]);
+      useEffect(() => { storage.set('flow_settings_v8', settings); }, [settings]);
 
-      const [stats, setStats] = useState(() => storage.get('flow_stats_v7', {
+      const [stats, setStats] = useState(() => storage.get('flow_stats_v8', {
         history: {}, todayMinutes: 0, streak: 1, totalSessions: 0
       }));
-      useEffect(() => { storage.set('flow_stats_v7', stats); }, [stats]);
+      useEffect(() => { storage.set('flow_stats_v8', stats); }, [stats]);
 
-      const [mode, setMode] = useState('pomodoro'); // 'pomodoro' | 'flowtime' | 'stopwatch' | 'cap_tracker'
-      const [phase, setPhase] = useState('focus');   // focus | shortBreak | longBreak (for pomodoro) OR activity | break (for cap_tracker)
+      const [mode, setMode] = useState('pomodoro');
+      const [phase, setPhase] = useState('focus');
       const [isRunning, setIsRunning] = useState(false);
       const [time, setTime] = useState(settings.pomodoroFocus * 60);
       const [duration, setDuration] = useState(settings.pomodoroFocus * 60);
@@ -781,7 +971,6 @@
           const brkMins = activeBudget?.breakMins || settings.budgetBreak || 15;
 
           if (phase === 'activity') {
-            // Activity session finished -> Trigger 15-min break
             const nextPh = 'break';
             const title = "Activity Session Finished ☕";
             const msg = `You completed a ${actMins}-min session of ${activeBudget?.title || 'leisure'}. Time for a ${brkMins}-min break to rest your eyes and stretch!`;
@@ -800,7 +989,6 @@
               budget: activeBudget
             });
           } else {
-            // Break finished -> Prompt for next activity sprint
             const nextPh = 'activity';
             const title = "Break Finished 📺";
             const msg = `Your ${brkMins}-min break is over. Ready for your next ${actMins}-min session or switch to focus?`;
@@ -866,7 +1054,6 @@
           const deltaSecs = Math.max(0, (now - lastTickRef.current) / 1000);
           lastTickRef.current = now;
 
-          // Pure Stopwatch / Flowtime count UP
           if (mode === 'stopwatch' || (mode === 'flowtime' && phase === 'focus')) {
             const elapsed = Math.floor((now - countUpRef.current) / 1000);
             setTime(elapsed);
@@ -889,11 +1076,9 @@
             return;
           }
 
-          // Countdown modes (Pomodoro & Cap Tracker 30-15 cycles)
           const rem = Math.max(0, Math.ceil((targetRef.current - now) / 1000));
           setTime(rem);
 
-          // If running an activity session in Cap Tracker, log time against daily cap!
           if (mode === 'cap_tracker' && phase === 'activity' && onBudgetTick) {
             accumulatedBudgetSecsRef.current += deltaSecs;
             if (accumulatedBudgetSecsRef.current >= 60) {
@@ -903,7 +1088,6 @@
             }
           }
 
-          // Pomodoro Focus accumulation
           if (mode === 'pomodoro' && phase === 'focus') {
             accumulatedFocusSecsRef.current += deltaSecs;
             if (accumulatedFocusSecsRef.current >= 60) {
@@ -1039,7 +1223,7 @@
 
     // --- HOOK: TASKS WITH BUDGET ATTACHMENT ---
     function useTaskManager() {
-      const [tasks, setTasks] = useState(() => storage.get('flow_tasks_v7', [
+      const [tasks, setTasks] = useState(() => storage.get('flow_tasks_v8', [
         { 
           id: '1', 
           title: 'Design 30/15 Break Architecture for Capped Activities', 
@@ -1065,10 +1249,10 @@
           subtasks: [] 
         }
       ]));
-      useEffect(() => { storage.set('flow_tasks_v7', tasks); }, [tasks]);
+      useEffect(() => { storage.set('flow_tasks_v8', tasks); }, [tasks]);
 
-      const [activeId, setActiveId] = useState(() => storage.get('flow_active_task_id_v7', '1'));
-      useEffect(() => { storage.set('flow_active_task_id_v7', activeId); }, [activeId]);
+      const [activeId, setActiveId] = useState(() => storage.get('flow_active_task_id_v8', '1'));
+      useEffect(() => { storage.set('flow_active_task_id_v8', activeId); }, [activeId]);
 
       const activeTask = useMemo(() => tasks.find(t => t.id === activeId) || null, [tasks, activeId]);
 
@@ -1165,7 +1349,6 @@
             </div>
           </div>
 
-          {/* Action Buttons */}
           {isHardLimit ? (
             <div className="grid grid-cols-2 gap-2 pt-1">
               <button
@@ -1273,7 +1456,6 @@
             </button>
           </div>
 
-          {/* Quick Creator */}
           {isAdding && (
             <form onSubmit={handleCreate} className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-3 animate-slide-in-right">
               <div className="flex gap-2">
@@ -1354,7 +1536,6 @@
             </form>
           )}
 
-          {/* Activity Cards List */}
           <div className="space-y-4 max-h-[62vh] overflow-y-auto pr-1 custom-scroll">
             {budgetManager.budgets.map(b => {
               const used = budgetManager.getUsage(b.id);
@@ -1448,7 +1629,6 @@
                     </div>
                   </div>
 
-                  {/* Progress Bar & Stats */}
                   <div className="mt-4 space-y-1.5">
                     <div className="flex justify-between items-center text-xs font-mono">
                       <span className="text-gray-300 font-semibold">
@@ -1471,7 +1651,6 @@
                     </div>
                   </div>
 
-                  {/* Quick Stepper Buttons */}
                   <div className="mt-3 flex items-center justify-between pt-2 border-t border-white/5">
                     <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Quick Log</span>
                     <div className="flex items-center gap-1.5">
@@ -1517,21 +1696,481 @@
       );
     }
 
+    // --- POLISHED AUDIO & MUSIC STUDIO COMPONENT ---
+    function AudioStudioContent({ musicPlayer }) {
+      const [tab, setTab] = useState('vault'); // 'vault' | 'ambient'
+      const [filterQuery, setFilterQuery] = useState('');
+      const [ambientLevels, setAmbientLevels] = useState({
+        rain: 0,
+        brown: 0,
+        hum: 0,
+        binaural: 0,
+        alpha: 0,
+        vinyl: 0
+      });
+
+      const handleAmbientChange = (type, val) => {
+        setAmbientLevels(p => ({ ...p, [type]: val }));
+        if (val === 0) soundEngine.stopAmbience(type);
+        else soundEngine.startAmbience(type, val);
+      };
+
+      const setPresetMix = (preset) => {
+        soundEngine.stopAllAmbience();
+        let newLevels = { rain: 0, brown: 0, hum: 0, binaural: 0, alpha: 0, vinyl: 0 };
+        if (preset === 'rainy_cafe') {
+          newLevels = { rain: 0.6, vinyl: 0.35, hum: 0.2, brown: 0, binaural: 0, alpha: 0 };
+        } else if (preset === 'deep_cyber') {
+          newLevels = { brown: 0.5, binaural: 0.4, hum: 0.3, rain: 0, alpha: 0, vinyl: 0 };
+        } else if (preset === 'zen_alpha') {
+          newLevels = { alpha: 0.5, rain: 0.35, hum: 0, brown: 0, binaural: 0, vinyl: 0 };
+        }
+        setAmbientLevels(newLevels);
+        Object.entries(newLevels).forEach(([k, v]) => {
+          if (v > 0) soundEngine.startAmbience(k, v);
+        });
+      };
+
+      const filteredTracks = useMemo(() => {
+        if (!filterQuery.trim()) return musicPlayer.playlist;
+        return musicPlayer.playlist.filter(t => t.name.toLowerCase().includes(filterQuery.toLowerCase()));
+      }, [musicPlayer.playlist, filterQuery]);
+
+      const curTrack = musicPlayer.currentTrack;
+
+      return (
+        <div className="space-y-5">
+          {/* Top Sub-tabs */}
+          <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
+            <button
+              onClick={() => setTab('vault')}
+              className={`flex-1 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                tab === 'vault' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <span>💿 Music Vault</span>
+              {musicPlayer.isPlaying && (
+                <span className="flex items-end gap-0.5 h-3">
+                  <span className="w-0.5 bg-white eq-bar-1" />
+                  <span className="w-0.5 bg-white eq-bar-2" />
+                  <span className="w-0.5 bg-white eq-bar-3" />
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setTab('ambient')}
+              className={`flex-1 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                tab === 'ambient' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <span>🌿 Ambient Mixer</span>
+              {Object.values(ambientLevels).some(v => v > 0) && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              )}
+            </button>
+          </div>
+
+          {tab === 'vault' ? (
+            <div className="space-y-5">
+              
+              {/* NOW PLAYING HERO CARD */}
+              <div className="p-5 rounded-3xl bg-gradient-to-b from-white/10 to-white/5 border border-white/15 shadow-2xl relative overflow-hidden">
+                <div className="flex flex-col sm:flex-row items-center gap-5">
+                  
+                  {/* Rotating Vinyl Disc Artwork */}
+                  <div className="relative shrink-0">
+                    <div className={`w-28 h-28 sm:w-32 sm:h-32 rounded-full vinyl-disc border-2 border-white/20 flex items-center justify-center ${
+                      musicPlayer.isPlaying ? 'animate-spin-slow' : ''
+                    }`}>
+                      {/* Center Label */}
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 via-indigo-500 to-purple-600 border border-white/40 flex items-center justify-center shadow-lg">
+                        <span className="text-xs">🎵</span>
+                      </div>
+                    </div>
+                    {/* Glowing Accent Hub */}
+                    <div className="absolute inset-0 rounded-full pointer-events-none bg-blue-500/10 blur-xl" />
+                  </div>
+
+                  {/* Track Meta & Status */}
+                  <div className="flex-1 w-full text-center sm:text-left space-y-2">
+                    <div className="flex items-center justify-center sm:justify-start gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 uppercase">
+                        {musicPlayer.isLoFiActive ? 'Procedural Audio' : 'Offline Vault'}
+                      </span>
+                      {musicPlayer.isPlaying && (
+                        <div className="flex items-end gap-0.5 h-3">
+                          <span className="w-1 bg-blue-400 rounded-full eq-bar-1" />
+                          <span className="w-1 bg-blue-400 rounded-full eq-bar-2" />
+                          <span className="w-1 bg-blue-400 rounded-full eq-bar-3" />
+                          <span className="w-1 bg-blue-400 rounded-full eq-bar-4" />
+                          <span className="w-1 bg-blue-400 rounded-full eq-bar-5" />
+                        </div>
+                      )}
+                    </div>
+
+                    <h4 className="text-base sm:text-lg font-bold text-white tracking-tight truncate max-w-full">
+                      {curTrack?.name || 'No Track Selected'}
+                    </h4>
+
+                    <p className="text-xs text-gray-400 font-mono">
+                      {curTrack?.size ? `${curTrack.size} • Flow Audio Studio` : 'Select or upload a track below'}
+                    </p>
+
+                    {/* Scrubber Range */}
+                    <div className="space-y-1 pt-1">
+                      <input
+                        type="range"
+                        min="0"
+                        max={musicPlayer.duration || 100}
+                        value={musicPlayer.currentTime}
+                        disabled={musicPlayer.isLoFiActive || !curTrack}
+                        onChange={e => musicPlayer.seek(parseFloat(e.target.value))}
+                        className="w-full cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[10px] font-mono text-gray-400">
+                        <span>{formatTime(musicPlayer.currentTime)}</span>
+                        <span>{musicPlayer.isLoFiActive ? '∞ Live' : formatTime(musicPlayer.duration)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tactile Playback Controls */}
+                <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    {/* Shuffle */}
+                    <button
+                      onClick={() => musicPlayer.setIsShuffle(!musicPlayer.isShuffle)}
+                      className={`p-2 rounded-xl text-xs transition-all ${
+                        musicPlayer.isShuffle ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`}
+                      title="Shuffle playlist"
+                    >
+                      🔀
+                    </button>
+
+                    {/* Repeat */}
+                    <button
+                      onClick={() => musicPlayer.setRepeatMode(m => m === 'all' ? 'one' : m === 'one' ? 'off' : 'all')}
+                      className={`p-2 rounded-xl text-xs transition-all ${
+                        musicPlayer.repeatMode !== 'off' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`}
+                      title={`Repeat Mode: ${musicPlayer.repeatMode}`}
+                    >
+                      {musicPlayer.repeatMode === 'one' ? '🔂' : '🔁'}
+                    </button>
+
+                    {/* Rewind 10s */}
+                    <button
+                      onClick={() => musicPlayer.skip(-10)}
+                      className="p-2 rounded-xl text-xs text-gray-400 hover:text-white hover:bg-white/5"
+                      title="Rewind 10s"
+                    >
+                      -10s
+                    </button>
+                  </div>
+
+                  {/* Main Center Transport */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={musicPlayer.handlePrev}
+                      className="p-2.5 rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
+                      title="Previous Track"
+                    >
+                      ⏮
+                    </button>
+
+                    <button
+                      onClick={musicPlayer.togglePlay}
+                      className="w-12 h-12 rounded-full bg-white text-black font-bold text-lg flex items-center justify-center shadow-xl shadow-white/20 hover:scale-105 active:scale-95 transition-all"
+                      title={musicPlayer.isPlaying ? 'Pause' : 'Play'}
+                    >
+                      {musicPlayer.isPlaying ? '⏸' : '▶'}
+                    </button>
+
+                    <button
+                      onClick={musicPlayer.handleNext}
+                      className="p-2.5 rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
+                      title="Next Track"
+                    >
+                      ⏭
+                    </button>
+                  </div>
+
+                  {/* Fast Forward 10s & Ducking */}
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <button
+                      onClick={() => musicPlayer.skip(10)}
+                      className="p-2 rounded-xl text-xs text-gray-400 hover:text-white hover:bg-white/5"
+                      title="Fast-forward 10s"
+                    >
+                      +10s
+                    </button>
+
+                    <button
+                      onClick={() => musicPlayer.setDuckOnBreak(!musicPlayer.duckOnBreak)}
+                      className={`p-2 rounded-xl text-xs transition-all ${
+                        musicPlayer.duckOnBreak ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-gray-500 hover:text-white'
+                      }`}
+                      title="Auto-duck volume during breaks"
+                    >
+                      🦆
+                    </button>
+                  </div>
+                </div>
+
+                {/* Volume Slider Bar */}
+                <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2 text-xs text-gray-400 font-mono">
+                    <span>🔊</span>
+                    <span>Volume</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.02"
+                    value={musicPlayer.volume}
+                    onChange={e => musicPlayer.setVolume(parseFloat(e.target.value))}
+                    className="flex-1 max-w-[200px]"
+                  />
+                  <span className="text-xs font-mono text-gray-400 w-8 text-right">
+                    {Math.round(musicPlayer.volume * 100)}%
+                  </span>
+                </div>
+              </div>
+
+              {/* QUICK PROCEDURAL LO-FI CHILL RADIO BUTTON */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/30 to-purple-950/30 border border-blue-500/30 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-xl">
+                    📻
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                      Procedural Lo-Fi Synth Station
+                    </h5>
+                    <p className="text-[11px] text-gray-300">
+                      Zero files needed. Live Web Audio jazz chords with warm vinyl crackle.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={musicPlayer.isLoFiActive ? musicPlayer.stopLoFiRadio : musicPlayer.startLoFiRadio}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg ${
+                    musicPlayer.isLoFiActive
+                      ? 'bg-rose-500 text-black shadow-rose-500/30'
+                      : 'bg-blue-500 hover:bg-blue-400 text-black shadow-blue-500/30'
+                  }`}
+                >
+                  {musicPlayer.isLoFiActive ? '⏹ Stop Radio' : '▶ Play Radio'}
+                </button>
+              </div>
+
+              {/* DRAG & DROP UPLOAD ZONE */}
+              <div className="border-2 border-dashed border-white/15 hover:border-blue-400/50 rounded-2xl p-5 text-center transition-colors bg-white/5 cursor-pointer relative">
+                <input
+                  type="file"
+                  multiple
+                  accept="audio/*"
+                  onChange={e => musicPlayer.addTracks(e.target.files)}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                />
+                <div className="flex flex-col items-center gap-1.5 pointer-events-none">
+                  <span className="text-2xl">📥</span>
+                  <span className="text-xs font-bold text-white">
+                    Drop audio files here or click to browse
+                  </span>
+                  <span className="text-[10px] text-gray-400 font-mono">
+                    Stores permanently in offline IndexedDB • MP3, WAV, OGG, FLAC, M4A
+                  </span>
+                </div>
+              </div>
+
+              {/* PLAYLIST MANAGER */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono uppercase font-bold text-gray-300">
+                      Playlist Vault ({musicPlayer.playlist.length})
+                    </span>
+                  </div>
+
+                  {musicPlayer.playlist.length > 0 && (
+                    <button
+                      onClick={() => {
+                        if (confirm('Clear all uploaded songs from vault?')) {
+                          musicPlayer.clearAllTracks();
+                        }
+                      }}
+                      className="text-[10px] text-gray-500 hover:text-rose-400 font-mono uppercase tracking-wider font-semibold"
+                    >
+                      Clear Vault
+                    </button>
+                  )}
+                </div>
+
+                {musicPlayer.playlist.length > 3 && (
+                  <input
+                    type="text"
+                    placeholder="Search tracks..."
+                    value={filterQuery}
+                    onChange={e => setFilterQuery(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                  />
+                )}
+
+                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1 custom-scroll">
+                  {filteredTracks.length === 0 ? (
+                    <div className="py-6 text-center text-xs text-gray-500 font-mono">
+                      No tracks uploaded yet. Drop files above or play the Lo-Fi station!
+                    </div>
+                  ) : (
+                    filteredTracks.map((t, idx) => {
+                      const isCurrent = musicPlayer.currentTrack?.id === t.id;
+                      return (
+                        <div
+                          key={t.id}
+                          className={`p-2.5 rounded-xl border flex items-center justify-between transition-all ${
+                            isCurrent
+                              ? 'bg-blue-600/20 border-blue-500/40 text-white'
+                              : 'bg-white/5 border-white/5 text-gray-300 hover:bg-white/10'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 overflow-hidden flex-1">
+                            <span className="text-xs font-mono text-gray-500 w-5 text-right">
+                              {isCurrent && musicPlayer.isPlaying ? '▶' : `${idx + 1}`}
+                            </span>
+                            <div className="flex flex-col truncate">
+                              <span className="text-xs font-semibold truncate">{t.name}</span>
+                              <span className="text-[10px] font-mono text-gray-400">{t.size}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 pl-2">
+                            <button
+                              onClick={() => musicPlayer.playIndex(musicPlayer.playlist.findIndex(x => x.id === t.id))}
+                              className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold"
+                            >
+                              {isCurrent && musicPlayer.isPlaying ? 'Pause' : 'Play'}
+                            </button>
+                            <button
+                              onClick={() => musicPlayer.removeTrack(t.id)}
+                              className="p-1 rounded-lg text-gray-500 hover:text-rose-400 text-xs"
+                              title="Delete track"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+            </div>
+          ) : (
+            /* AMBIENT SOUNDSCAPES MIXER */
+            <div className="space-y-4">
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono uppercase font-bold text-gray-300">
+                    Curated Ambience Mixes
+                  </span>
+                  <button
+                    onClick={() => setPresetMix('mute')}
+                    className="text-[10px] text-gray-500 hover:text-rose-400 font-mono uppercase"
+                  >
+                    Mute Ambience
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setPresetMix('rainy_cafe')}
+                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-left border border-white/5"
+                  >
+                    <span className="block text-base mb-1">🌧️☕</span>
+                    <strong className="block text-white text-[11px]">Rainy Cafe</strong>
+                    <span className="text-[9px] text-gray-400 font-mono">Rain + Vinyl</span>
+                  </button>
+
+                  <button
+                    onClick={() => setPresetMix('deep_cyber')}
+                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-left border border-white/5"
+                  >
+                    <span className="block text-base mb-1">🌌🧠</span>
+                    <strong className="block text-white text-[11px]">Deep Cyber</strong>
+                    <span className="text-[9px] text-gray-400 font-mono">Brown + 14Hz</span>
+                  </button>
+
+                  <button
+                    onClick={() => setPresetMix('zen_alpha')}
+                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-left border border-white/5"
+                  >
+                    <span className="block text-base mb-1">🧘🌿</span>
+                    <strong className="block text-white text-[11px]">Zen Alpha</strong>
+                    <span className="text-[9px] text-gray-400 font-mono">10Hz + Rain</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Individual Multi-Channel Knobs */}
+              <div className="space-y-3 p-4 bg-white/5 rounded-2xl border border-white/10">
+                {[
+                  { id: 'rain', label: 'Rainfall & Storm', icon: '🌧️', desc: 'Pink-noise organic rain' },
+                  { id: 'vinyl', label: 'Vinyl Crackle', icon: '📻', desc: 'Analog turntable warmth' },
+                  { id: 'brown', label: 'Brown Noise', icon: '🌊', desc: 'Deep low-frequency focus mask' },
+                  { id: 'hum', label: '55Hz Resonant Hum', icon: '🌌', desc: 'Grounded sub-bass drone' },
+                  { id: 'binaural', label: '14Hz Flow Binaural', icon: '🧠', desc: 'Dual-ear beta frequency' },
+                  { id: 'alpha', label: '10Hz Alpha Waves', icon: '🧘', desc: 'Relaxed calm attention' }
+                ].map(sound => (
+                  <div key={sound.id} className="flex items-center justify-between gap-3 text-xs py-1 border-b border-white/5 last:border-none">
+                    <div className="flex items-center gap-2.5 w-44">
+                      <span className="text-base">{sound.icon}</span>
+                      <div>
+                        <span className="block font-medium text-white">{sound.label}</span>
+                        <span className="block text-[9px] text-gray-500 font-mono">{sound.desc}</span>
+                      </div>
+                    </div>
+
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={ambientLevels[sound.id] || 0}
+                      onChange={e => handleAmbientChange(sound.id, parseFloat(e.target.value))}
+                      className="flex-1"
+                    />
+
+                    <span className="w-8 text-right font-mono text-[11px] text-gray-400">
+                      {Math.round((ambientLevels[sound.id] || 0) * 100)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     // --- TELEMETRY DASHBOARD (FOCUS + LEISURE BALANCE HUD) ---
     function TelemetryContent({ stats, tasks, budgetManager, accentColor }) {
       const todayStr = new Date().toDateString();
       const todayFocusMins = stats.history[todayStr] || 0;
 
-      // Calculate total budgeted leisure time spent today
       const totalLeisureMins = useMemo(() => {
         return budgetManager.budgets.reduce((acc, b) => acc + budgetManager.getUsage(b.id), 0);
       }, [budgetManager]);
 
-      // Focus ratio
       const totalActiveTime = todayFocusMins + totalLeisureMins;
       const focusRatio = totalActiveTime > 0 ? Math.round((todayFocusMins / totalActiveTime) * 100) : 100;
 
-      // 12 Weeks (84 Days) Heatmap generator
       const heatmapDays = useMemo(() => {
         const list = [];
         const now = new Date();
@@ -1544,13 +2183,11 @@
         return list;
       }, [stats.history]);
 
-      // Last 7 Days Bars
       const last7Days = useMemo(() => heatmapDays.slice(-7), [heatmapDays]);
       const maxMins = Math.max(1, ...last7Days.map(d => d.mins));
 
       return (
         <div className="space-y-6">
-          {/* Top Metric Cards */}
           <div className="grid grid-cols-3 gap-2.5 text-center">
             <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
               <span className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">Focus Work</span>
@@ -1574,7 +2211,6 @@
             </div>
           </div>
 
-          {/* Daily Activity Cap Status Overview */}
           <div className="p-5 bg-white/5 rounded-2xl border border-white/5 space-y-3">
             <div className="flex justify-between items-center text-xs font-mono text-gray-300">
               <span className="uppercase tracking-wider font-bold">Today's Activity Caps Status</span>
@@ -1614,7 +2250,6 @@
             </div>
           </div>
 
-          {/* 12-Week Activity Heatmap */}
           <div className="p-5 bg-white/5 rounded-2xl border border-white/5 space-y-3">
             <div className="flex justify-between items-center text-xs font-mono text-gray-400">
               <span className="uppercase tracking-wider font-bold">12-Week Focus Heatmap</span>
@@ -1635,7 +2270,6 @@
             </div>
           </div>
 
-          {/* Last 7 Days Vertical Chart */}
           <div className="p-5 bg-white/5 rounded-2xl border border-white/5 space-y-4">
             <div className="text-xs font-mono uppercase tracking-wider font-bold text-gray-400">
               Last 7 Days Trend
@@ -1685,7 +2319,7 @@
                 { key: 'Z', desc: 'Zen Clean Mode' },
                 { key: 'B', desc: 'Open Time Budgets & 30-15 Breaks' },
                 { key: 'T', desc: 'Open Task Manager' },
-                { key: 'M', desc: 'Open Offline Music Vault' },
+                { key: 'M', desc: 'Open Music Studio & Vault' },
                 { key: 'L', desc: 'Open Telemetry Dashboard' },
                 { key: '?', desc: 'Show this shortcuts guide' },
                 { key: 'Esc', desc: 'Dismiss toasts and modal drawers' }
@@ -1713,7 +2347,6 @@
         setWindowsToast(null);
       }, []);
 
-      // Budget Manager callback when daily cap is exceeded
       const handleLimitExceeded = useCallback(({ budget, currentMinutes, isExceeded, percentage }) => {
         soundEngine.playLimitAlertTone();
         const title = isExceeded ? `⚠️ ${budget.title} Daily Cap Reached!` : `⏳ ${budget.title} Near Limit (${percentage}%)`;
@@ -1734,7 +2367,6 @@
 
       const budgetManager = useBudgetManager(handleLimitExceeded);
 
-      // On timer tick while tracking an activity cap interval
       const handleBudgetTick = useCallback((minutesDelta) => {
         if (budgetManager.activeBudgetId) {
           budgetManager.logMinutes(budgetManager.activeBudgetId, minutesDelta);
@@ -1750,7 +2382,7 @@
 
       const [drawer, setDrawer] = useState(null); // 'budgets' | 'tasks' | 'audio' | 'telemetry' | 'settings'
       const [isZen, setIsZen] = useState(false);
-      const [intention, setIntention] = useState(() => storage.get('flow_daily_intention_v7', 'Maintain healthy screen boundaries'));
+      const [intention, setIntention] = useState(() => storage.get('flow_daily_intention_v8', 'Maintain flow and healthy boundaries'));
       const [isEditingIntention, setIsEditingIntention] = useState(false);
 
       const snoozeToast = () => {
@@ -1798,11 +2430,11 @@
         reader.onload = (event) => {
           try {
             const data = JSON.parse(event.target.result);
-            if (data.settings) storage.set('flow_settings_v7', data.settings);
-            if (data.stats) storage.set('flow_stats_v7', data.stats);
-            if (data.tasks) storage.set('flow_tasks_v7', data.tasks);
-            if (data.budgets) storage.set('flow_budgets_v7', data.budgets);
-            if (data.budgetUsage) storage.set('flow_budget_usage_v7', data.budgetUsage);
+            if (data.settings) storage.set('flow_settings_v8', data.settings);
+            if (data.stats) storage.set('flow_stats_v8', data.stats);
+            if (data.tasks) storage.set('flow_tasks_v8', data.tasks);
+            if (data.budgets) storage.set('flow_budgets_v8', data.budgets);
+            if (data.budgetUsage) storage.set('flow_budget_usage_v8', data.budgetUsage);
             alert('Backup successfully imported! Reloading...');
             window.location.reload();
           } catch(err) {
@@ -1818,7 +2450,6 @@
         setDrawer(null);
       };
 
-      // Keyboard navigation
       useEffect(() => {
         const onKey = (e) => {
           if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
@@ -1840,19 +2471,16 @@
         return () => window.removeEventListener('keydown', onKey);
       }, [timer, windowsToast, dismissToast, drawer, showShortcuts]);
 
-      // Timer display math
       const m = Math.floor(timer.time / 60).toString().padStart(2, '0');
       const s = (timer.time % 60).toString().padStart(2, '0');
       const progress = timer.duration > 0 ? (timer.duration - timer.time) / timer.duration : 1;
       const radius = 42;
       const c = 2 * Math.PI * radius;
 
-      // Active Budget Stats if in Cap Tracker mode
       const activeBudget = budgetManager.activeBudget;
       const activeBudgetUsage = activeBudget ? budgetManager.getUsage(activeBudget.id) : 0;
       const isCapExceeded = activeBudget ? activeBudgetUsage >= activeBudget.maxMinutes : false;
 
-      // Count how many activity caps have reached limit today
       const exceededCapsCount = useMemo(() => {
         return budgetManager.budgets.filter(b => budgetManager.getUsage(b.id) >= b.maxMinutes).length;
       }, [budgetManager]);
@@ -1871,6 +2499,53 @@
 
           {/* KEYBOARD SHORTCUTS MODAL */}
           <ShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
+
+          {/* FLOATING HUD MINI-PLAYER (WHEN AUDIO IS PLAYING) */}
+          {musicPlayer.currentTrack && !isZen && (
+            <div className="fixed top-20 right-6 z-30 glass px-3.5 py-2 rounded-full flex items-center gap-3 border border-white/15 shadow-2xl animate-slide-in-right">
+              <div 
+                onClick={() => setDrawer('audio')}
+                className={`w-7 h-7 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center text-xs text-white cursor-pointer ${
+                  musicPlayer.isPlaying ? 'animate-spin-slow' : ''
+                }`}
+              >
+                💿
+              </div>
+
+              <div 
+                onClick={() => setDrawer('audio')} 
+                className="flex flex-col cursor-pointer max-w-[130px] sm:max-w-[180px]"
+              >
+                <span className="text-xs font-bold text-gray-200 truncate">
+                  {musicPlayer.currentTrack.name}
+                </span>
+                <span className="text-[10px] font-mono text-gray-400">
+                  {musicPlayer.isLoFiActive ? '∞ Live Lo-Fi' : `${formatTime(musicPlayer.currentTime)} / ${formatTime(musicPlayer.duration)}`}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1 pl-1">
+                <button 
+                  onClick={musicPlayer.handlePrev} 
+                  className="text-gray-400 hover:text-white text-xs p-1"
+                >
+                  ⏮
+                </button>
+                <button 
+                  onClick={musicPlayer.togglePlay} 
+                  className="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center font-bold text-xs hover:scale-105 active:scale-95 transition-transform"
+                >
+                  {musicPlayer.isPlaying ? '⏸' : '▶'}
+                </button>
+                <button 
+                  onClick={musicPlayer.handleNext} 
+                  className="text-gray-400 hover:text-white text-xs p-1"
+                >
+                  ⏭
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* TOP HEADER */}
           <header className={`w-full max-w-5xl mx-auto px-6 py-5 flex items-center justify-between transition-opacity duration-500 z-20 ${
@@ -1894,8 +2569,8 @@
                   value={intention}
                   autoFocus
                   onChange={e => setIntention(e.target.value)}
-                  onBlur={() => { storage.set('flow_daily_intention_v7', intention); setIsEditingIntention(false); }}
-                  onKeyDown={e => { if (e.key === 'Enter') { storage.set('flow_daily_intention_v7', intention); setIsEditingIntention(false); }}}
+                  onBlur={() => { storage.set('flow_daily_intention_v8', intention); setIsEditingIntention(false); }}
+                  onKeyDown={e => { if (e.key === 'Enter') { storage.set('flow_daily_intention_v8', intention); setIsEditingIntention(false); }}}
                   className="bg-black/60 border border-white/20 rounded-full px-4 py-1 text-xs text-white focus:outline-none"
                 />
               ) : (
@@ -2185,14 +2860,21 @@
               )}
             </button>
 
+            {/* UPGRADED MUSIC DOCK BUTTON */}
             <button
               onClick={() => setDrawer('audio')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${
                 drawer === 'audio' ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
-              Music
-              {musicPlayer.isPlaying && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />}
+              <span>🎵 Studio</span>
+              {musicPlayer.isPlaying && (
+                <span className="flex items-end gap-0.5 h-3">
+                  <span className="w-0.5 bg-emerald-400 eq-bar-1" />
+                  <span className="w-0.5 bg-emerald-400 eq-bar-2" />
+                  <span className="w-0.5 bg-emerald-400 eq-bar-3" />
+                </span>
+              )}
             </button>
 
             <button
@@ -2221,7 +2903,7 @@
               <div className="relative w-full sm:max-w-xl max-h-[88vh] bg-[#0c0c14] border border-white/15 sm:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col overflow-hidden z-10 p-6 space-y-6">
                 <div className="flex items-center justify-between border-b border-white/5 pb-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gray-300 font-mono">
-                    {drawer === 'budgets' ? 'Time Budgets & 30-15 Break Cycles' : drawer}
+                    {drawer === 'budgets' ? 'Time Budgets & 30-15 Break Cycles' : drawer === 'audio' ? 'Audio Studio & Ambient Mixer' : drawer}
                   </h3>
                   <button onClick={() => setDrawer(null)} className="text-gray-400 hover:text-white">✕</button>
                 </div>
@@ -2289,7 +2971,6 @@
                             </div>
                           </div>
 
-                          {/* Subtasks */}
                           <div className="pl-6 space-y-1 text-xs">
                             {t.subtasks && t.subtasks.map(s => (
                               <div key={s.id} className="flex items-center gap-2">
@@ -2313,88 +2994,9 @@
                   </div>
                 )}
 
-                {/* AUDIO DRAWER */}
+                {/* UPGRADED AUDIO STUDIO DRAWER */}
                 {drawer === 'audio' && (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-white/5 rounded-xl space-y-3">
-                      <div className="text-xs font-semibold text-gray-300">Custom Offline Music Vault</div>
-                      <input type="file" multiple accept="audio/*" onChange={e => musicPlayer.addTracks(e.target.files)} className="text-xs text-gray-400" />
-                      
-                      {/* Scrubber */}
-                      <div className="space-y-1 pt-2">
-                        <input type="range" min="0" max={musicPlayer.duration || 100} value={musicPlayer.currentTime} onChange={e => musicPlayer.seek(parseFloat(e.target.value))} className="w-full" />
-                        <div className="flex justify-between text-[10px] font-mono text-gray-400">
-                          <span>{formatTime(musicPlayer.currentTime)}</span>
-                          <span>{formatTime(musicPlayer.duration)}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-1">
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => musicPlayer.setIsShuffle(!musicPlayer.isShuffle)} className={`text-xs ${musicPlayer.isShuffle ? 'text-blue-400' : 'text-gray-500'}`}>🔀</button>
-                          <button onClick={() => musicPlayer.setRepeatMode(m => m === 'all' ? 'one' : m === 'one' ? 'off' : 'all')} className="text-xs text-gray-400">
-                            {musicPlayer.repeatMode === 'one' ? '🔂' : '🔁'}
-                          </button>
-                          <button onClick={musicPlayer.handlePrev} className="text-gray-400 hover:text-white text-xs">⏮</button>
-                          <button onClick={musicPlayer.togglePlay} className="px-3 py-1 bg-white text-black rounded text-xs font-bold">
-                            {musicPlayer.isPlaying ? 'Pause' : 'Play'}
-                          </button>
-                          <button onClick={musicPlayer.handleNext} className="text-gray-400 hover:text-white text-xs">⏭</button>
-                        </div>
-                        <span className="text-xs text-gray-400 truncate max-w-[140px]">{musicPlayer.currentTrack?.name || 'No file'}</span>
-                      </div>
-                    </div>
-
-                    {/* Ambient Synthesizers */}
-                    <div className="p-4 bg-white/5 rounded-xl space-y-3">
-                      <div className="text-xs font-semibold text-gray-300">Ambient Background Synthesizer</div>
-                      
-                      <div className="flex justify-between text-xs items-center">
-                        <span>Brown Noise</span>
-                        <input type="range" min="0" max="1" step="0.05" onChange={e => {
-                          const v = parseFloat(e.target.value);
-                          if (v === 0) soundEngine.stopAmbience('brown');
-                          else soundEngine.startAmbience('brown', v);
-                        }} />
-                      </div>
-
-                      <div className="flex justify-between text-xs items-center">
-                        <span>Rainfall</span>
-                        <input type="range" min="0" max="1" step="0.05" onChange={e => {
-                          const v = parseFloat(e.target.value);
-                          if (v === 0) soundEngine.stopAmbience('rain');
-                          else soundEngine.startAmbience('rain', v);
-                        }} />
-                      </div>
-
-                      <div className="flex justify-between text-xs items-center">
-                        <span>55Hz Deep Focus Hum</span>
-                        <input type="range" min="0" max="1" step="0.05" onChange={e => {
-                          const v = parseFloat(e.target.value);
-                          if (v === 0) soundEngine.stopAmbience('hum');
-                          else soundEngine.startAmbience('hum', v);
-                        }} />
-                      </div>
-
-                      <div className="flex justify-between text-xs items-center">
-                        <span>14Hz Flow Binaural</span>
-                        <input type="range" min="0" max="1" step="0.05" onChange={e => {
-                          const v = parseFloat(e.target.value);
-                          if (v === 0) soundEngine.stopAmbience('binaural');
-                          else soundEngine.startAmbience('binaural', v);
-                        }} />
-                      </div>
-
-                      <div className="flex justify-between text-xs items-center">
-                        <span>10Hz Alpha Calm Wave</span>
-                        <input type="range" min="0" max="1" step="0.05" onChange={e => {
-                          const v = parseFloat(e.target.value);
-                          if (v === 0) soundEngine.stopAmbience('alpha');
-                          else soundEngine.startAmbience('alpha', v);
-                        }} />
-                      </div>
-                    </div>
-                  </div>
+                  <AudioStudioContent musicPlayer={musicPlayer} />
                 )}
 
                 {/* TELEMETRY DRAWER */}
@@ -2439,7 +3041,6 @@
                       Grant Desktop Notifications
                     </button>
 
-                    {/* Data Backup & Restore */}
                     <div className="pt-3 border-t border-white/5 flex gap-2">
                       <button onClick={handleExport} className="flex-1 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-center font-bold uppercase">
                         Export Backup
