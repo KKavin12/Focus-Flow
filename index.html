@@ -236,7 +236,7 @@
       }
     };
 
-    // --- SOUND ENGINE (CHIMES, AMBIENCE & PROCEDURAL SYNTH) ---
+    // --- SOUND ENGINE (CHIMES, ALARMS, AMBIENCE & PROCEDURAL SYNTH) ---
     class SoundEngine {
       constructor() {
         this.ctx = null;
@@ -256,7 +256,7 @@
         this.masterGain.connect(this.ctx.destination);
       }
       
-      // Repeating Windows Clock Chime Loop
+      // Repeating Authentic Windows Clock Chime Loop
       startAlarmLoop() {
         this.init();
         if (this.ctx.state === 'suspended') this.ctx.resume();
@@ -271,7 +271,7 @@
           const gain1 = this.ctx.createGain();
           osc1.type = 'sine';
           osc1.frequency.setValueAtTime(659.25, now); // E5
-          gain1.gain.setValueAtTime(0.32, now);
+          gain1.gain.setValueAtTime(0.35, now);
           gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
           osc1.connect(gain1).connect(this.masterGain);
           osc1.start(now);
@@ -281,7 +281,7 @@
           const gain2 = this.ctx.createGain();
           osc2.type = 'sine';
           osc2.frequency.setValueAtTime(880, now + 0.16); // A5
-          gain2.gain.setValueAtTime(0.38, now + 0.16);
+          gain2.gain.setValueAtTime(0.42, now + 0.16);
           gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
           osc2.connect(gain2).connect(this.masterGain);
           osc2.start(now + 0.16);
@@ -392,7 +392,7 @@
           const oscL = this.ctx.createOscillator();
           const oscR = this.ctx.createOscillator();
           oscL.type = 'sine'; oscL.frequency.value = 200;
-          oscR.type = 'sine'; oscR.frequency.value = 214; // 14Hz Flow / Beta
+          oscR.type = 'sine'; oscR.frequency.value = 214;
           const merger = this.ctx.createChannelMerger(2);
           oscL.connect(merger, 0, 0);
           oscR.connect(merger, 0, 1);
@@ -403,7 +403,7 @@
           const oscL = this.ctx.createOscillator();
           const oscR = this.ctx.createOscillator();
           oscL.type = 'sine'; oscL.frequency.value = 150;
-          oscR.type = 'sine'; oscR.frequency.value = 160; // 10Hz Alpha Waves
+          oscR.type = 'sine'; oscR.frequency.value = 160;
           const merger = this.ctx.createChannelMerger(2);
           oscL.connect(merger, 0, 0);
           oscR.connect(merger, 0, 1);
@@ -411,7 +411,6 @@
           oscL.start(); oscR.start();
           this.nodes.alpha = { src: [oscL, oscR], gain: g };
         } else if (type === 'vinyl') {
-          // Subtle Vinyl Crackle Noise
           const sz = 2 * this.ctx.sampleRate;
           const b = this.ctx.createBuffer(1, sz, this.ctx.sampleRate);
           const d = b.getChannelData(0);
@@ -455,12 +454,11 @@
         this.stopProceduralLoFi();
         this.isLofiPlaying = true;
 
-        // Jazzy Lo-Fi Chord Progressions (frequencies in Hz)
         const chordProgressions = [
-          [293.66, 349.23, 440.00, 523.25], // Dm7 (D4, F4, A4, C5)
-          [261.63, 329.63, 392.00, 493.88], // Cmaj7 (C4, E4, G4, B4)
-          [220.00, 261.63, 329.63, 392.00], // Am7 (A3, C4, E4, G4)
-          [349.23, 440.00, 523.25, 659.25]  // Fmaj7 (F4, A4, C5, E5)
+          [293.66, 349.23, 440.00, 523.25], // Dm7
+          [261.63, 329.63, 392.00, 493.88], // Cmaj7
+          [220.00, 261.63, 329.63, 392.00], // Am7
+          [349.23, 440.00, 523.25, 659.25]  // Fmaj7
         ];
         let chordIdx = 0;
 
@@ -484,7 +482,6 @@
             const osc = this.ctx.createOscillator();
             osc.type = 'triangle';
             osc.frequency.setValueAtTime(freq, now);
-            // subtle pitch drift for analog lo-fi vibe
             osc.detune.setValueAtTime((Math.random() * 8) - 4, now);
             osc.connect(filter);
             osc.start(now);
@@ -494,7 +491,6 @@
           filter.connect(chordGain).connect(this.masterGain);
         };
 
-        // Also add gentle vinyl crackle
         this.startAmbience('vinyl', volume * 0.35);
 
         playChord();
@@ -563,6 +559,18 @@
         return `${hrs}h ${rem.toString().padStart(2, '0')}m`;
       }
       return `${rem}m`;
+    }
+
+    // Convert 24-hour 'HH:MM' to friendly 'H:MM AM/PM'
+    function format12Hour(time24) {
+      if (!time24 || typeof time24 !== 'string') return '';
+      const parts = time24.split(':');
+      if (parts.length < 2) return time24;
+      const h = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      const period = h >= 12 ? 'PM' : 'AM';
+      const h12 = h % 12 || 12;
+      return `${h12}:${m.toString().padStart(2, '0')} ${period}`;
     }
 
     // --- DEFAULT TIME BUDGETS (ACTIVITY CAPS WITH 30-15 BREAKS) ---
@@ -645,7 +653,6 @@
             }
           };
 
-          // Check limits
           const budget = budgets.find(b => b.id === budgetId);
           if (budget) {
             const alerted = alertedTodayRef.current[budgetId] || {};
@@ -731,6 +738,153 @@
       };
     }
 
+    // --- HOOK: SCHEDULED CLOCK ALARMS (SET SPECIFIC TIME) ---
+    function useAlarmManager(onAlarmTrigger) {
+      const [alarms, setAlarms] = useState(() => storage.get('flow_clock_alarms_v1', [
+        {
+          id: 'alarm_1',
+          time: '08:00',
+          label: 'Morning Focus Kickoff',
+          enabled: true,
+          repeat: 'daily'
+        },
+        {
+          id: 'alarm_2',
+          time: '14:30',
+          label: 'Afternoon Flow Session',
+          enabled: false,
+          repeat: 'weekdays'
+        },
+        {
+          id: 'alarm_3',
+          time: '22:30',
+          label: 'Screen Curfew & Bedtime',
+          enabled: true,
+          repeat: 'daily'
+        }
+      ]));
+      useEffect(() => { storage.set('flow_clock_alarms_v1', alarms); }, [alarms]);
+
+      const lastTriggeredRef = useRef({});
+
+      // Background clock watcher (every 1000ms)
+      useEffect(() => {
+        const interval = setInterval(() => {
+          const now = new Date();
+          const hours = now.getHours().toString().padStart(2, '0');
+          const mins = now.getMinutes().toString().padStart(2, '0');
+          const timeStr = `${hours}:${mins}`;
+          const day = now.getDay(); // 0 is Sun, 6 is Sat
+          const isWeekend = day === 0 || day === 6;
+          const dateKey = now.toDateString() + '_' + timeStr;
+
+          alarms.forEach(alarm => {
+            if (!alarm.enabled) return;
+            if (alarm.time !== timeStr) return;
+            if (lastTriggeredRef.current[alarm.id] === dateKey) return; // Prevent multiple rings in the same minute
+
+            if (alarm.repeat === 'weekdays' && isWeekend) return;
+            if (alarm.repeat === 'weekends' && !isWeekend) return;
+
+            // Trigger alarm!
+            lastTriggeredRef.current[alarm.id] = dateKey;
+            if (alarm.repeat === 'once') {
+              setAlarms(prev => prev.map(a => a.id === alarm.id ? { ...a, enabled: false } : a));
+            }
+
+            if (onAlarmTrigger) {
+              onAlarmTrigger(alarm);
+            }
+          });
+        }, 1000);
+
+        return () => clearInterval(interval);
+      }, [alarms, onAlarmTrigger]);
+
+      const toggleAlarm = useCallback((id) => {
+        setAlarms(prev => prev.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a));
+      }, []);
+
+      const addAlarm = useCallback(({ time, label, repeat = 'daily' }) => {
+        const newAlarm = {
+          id: 'alarm_' + Date.now().toString(36),
+          time: time || '09:00',
+          label: (label && label.trim()) || 'Focus Reminder',
+          enabled: true,
+          repeat
+        };
+        setAlarms(prev => [...prev, newAlarm]);
+      }, []);
+
+      const deleteAlarm = useCallback((id) => {
+        setAlarms(prev => prev.filter(a => a.id !== id));
+      }, []);
+
+      const snoozeAlarm = useCallback((alarm, snoozeMins = 5) => {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + snoozeMins);
+        const hours = now.getHours().toString().padStart(2, '0');
+        const mins = now.getMinutes().toString().padStart(2, '0');
+        const snoozeTime = `${hours}:${mins}`;
+
+        const snoozedAlarm = {
+          id: 'snooze_' + Date.now().toString(36),
+          time: snoozeTime,
+          label: `[Snoozed +${snoozeMins}m] ${alarm.label || 'Alarm'}`,
+          enabled: true,
+          repeat: 'once'
+        };
+        setAlarms(prev => [...prev, snoozedAlarm]);
+      }, []);
+
+      const addQuickAlarm = useCallback((deltaMinutes, label = 'Quick Alarm') => {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + deltaMinutes);
+        const hours = now.getHours().toString().padStart(2, '0');
+        const mins = now.getMinutes().toString().padStart(2, '0');
+        addAlarm({
+          time: `${hours}:${mins}`,
+          label: `${label} (+${deltaMinutes}m)`,
+          repeat: 'once'
+        });
+      }, [addAlarm]);
+
+      // Calculate the next upcoming alarm
+      const nextAlarm = useMemo(() => {
+        const enabledAlarms = alarms.filter(a => a.enabled);
+        if (enabledAlarms.length === 0) return null;
+
+        const now = new Date();
+        const curMinutes = now.getHours() * 60 + now.getMinutes();
+
+        let closest = null;
+        let minDiff = Infinity;
+
+        enabledAlarms.forEach(a => {
+          const [h, m] = a.time.split(':').map(Number);
+          const aMinutes = h * 60 + m;
+          let diff = aMinutes - curMinutes;
+          if (diff <= 0) diff += 24 * 60; // Next day
+          if (diff < minDiff) {
+            minDiff = diff;
+            closest = { ...a, diffMinutes: diff };
+          }
+        });
+
+        return closest;
+      }, [alarms]);
+
+      return {
+        alarms,
+        toggleAlarm,
+        addAlarm,
+        deleteAlarm,
+        snoozeAlarm,
+        addQuickAlarm,
+        nextAlarm
+      };
+    }
+
     // --- HOOK: FULLY POLISHED MUSIC PLAYER ENGINE ---
     function useMusicPlayer(isBreak) {
       const [playlist, setPlaylist] = useState([]);
@@ -740,7 +894,7 @@
       const [currentTime, setCurrentTime] = useState(0);
       const [duration, setDuration] = useState(0);
       const [volume, setVolume] = useState(() => storage.get('flow_music_vol', 0.8));
-      const [repeatMode, setRepeatMode] = useState(() => storage.get('flow_music_repeat', 'all')); // 'off' | 'all' | 'one'
+      const [repeatMode, setRepeatMode] = useState(() => storage.get('flow_music_repeat', 'all'));
       const [isShuffle, setIsShuffle] = useState(() => storage.get('flow_music_shuffle', false));
       const [duckOnBreak, setDuckOnBreak] = useState(true);
 
@@ -751,7 +905,6 @@
       useEffect(() => { storage.set('flow_music_repeat', repeatMode); }, [repeatMode]);
       useEffect(() => { storage.set('flow_music_shuffle', isShuffle); }, [isShuffle]);
 
-      // Load tracks from IndexedDB
       useEffect(() => {
         idb.getAllTracks().then(tracks => {
           if (tracks.length > 0) {
@@ -785,7 +938,6 @@
         };
       }, [currentIndex, playlist.length, repeatMode]);
 
-      // Volume with automatic ducking on breaks
       useEffect(() => {
         const effVol = isBreak && duckOnBreak ? volume * 0.25 : volume;
         audioRef.current.volume = effVol;
@@ -812,7 +964,6 @@
 
         if (!currentTrack) {
           if (playlist.length > 0) return playIndex(0);
-          // If no local files exist, start procedural Lo-Fi automatically!
           startLoFiRadio();
           return;
         }
@@ -929,14 +1080,14 @@
       };
     }
 
-    // --- HOOK: TIMER SYSTEM WITH CUSTOMIZABLE BREAKS FOR BOTH FOCUS & BUDGET MODES ---
+    // --- HOOK: TIMER SYSTEM ---
     function useTimer(onAlarmTrigger, onBudgetTick, activeBudget) {
       const [settings, setSettings] = useState(() => storage.get('flow_settings_v8', {
         pomodoroFocus: 25,
         pomodoroShort: 5,
         pomodoroLong: 15,
-        budgetSession: 30, // 30-minute default activity session
-        budgetBreak: 15,   // 15-minute default break
+        budgetSession: 30,
+        budgetBreak: 15,
         budgetPreset: '30/15',
         autoStart: false,
         accentColor: '#3b82f6',
@@ -965,7 +1116,6 @@
       const handleComplete = useCallback(() => {
         setIsRunning(false);
 
-        // --- CAP TRACKER / BUDGET INTERVAL COMPLETION ---
         if (mode === 'cap_tracker') {
           const actMins = activeBudget?.sessionMins || settings.budgetSession || 30;
           const brkMins = activeBudget?.breakMins || settings.budgetBreak || 15;
@@ -1010,7 +1160,6 @@
           return;
         }
 
-        // --- NORMAL POMODORO COMPLETION ---
         let nextPh = 'shortBreak';
         let title = "Time's up!";
         let msg = "Your focus session is finished.";
@@ -1294,11 +1443,12 @@
     }
 
     // --- WINDOWS 11 FLUENT ACRYLIC TOAST NOTIFICATION ---
-    function WindowsClockToast({ toast, onDismiss, onSnooze, onStartNext, onSwitchFocus }) {
+    function WindowsClockToast({ toast, onDismiss, onSnooze, onStartNext, onSwitchFocus, onAlarmSnooze }) {
       if (!toast) return null;
 
       const isHardLimit = toast.type === 'budget';
       const isCapSession = toast.type === 'cap_session';
+      const isClockAlarm = toast.type === 'clock_alarm';
 
       return (
         <div className="fixed bottom-6 right-6 z-[100] w-[390px] max-w-[calc(100vw-2rem)] win-toast rounded-2xl p-5 shadow-2xl animate-slide-in-right border border-white/20">
@@ -1309,12 +1459,14 @@
                   ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' 
                   : isCapSession 
                   ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                  : isClockAlarm
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 animate-pulse'
                   : 'bg-blue-500/20 text-blue-400 border border-blue-400/30'
               }`}>
                 {isHardLimit ? '⚠️' : isCapSession ? '☕' : '⏰'}
               </div>
               <span className="text-[11px] font-semibold text-gray-300 uppercase tracking-wider font-mono">
-                {isHardLimit ? 'Daily Cap Guard • Limit' : isCapSession ? 'Activity Interval • Clock' : 'Windows Clock • Flow'}
+                {isClockAlarm ? 'Scheduled Clock Alarm' : isHardLimit ? 'Daily Cap Guard • Limit' : isCapSession ? 'Activity Interval • Clock' : 'Windows Clock • Flow'}
               </span>
             </div>
             
@@ -1332,6 +1484,8 @@
                 ? 'bg-rose-500/10 border border-rose-500/30' 
                 : isCapSession 
                 ? 'bg-amber-500/10 border border-amber-500/30'
+                : isClockAlarm
+                ? 'bg-emerald-500/10 border border-emerald-500/30 animate-bounce'
                 : 'bg-blue-500/10 border border-blue-500/30'
             }`}>
               {toast.icon || (isHardLimit ? '📺' : isCapSession ? (toast.phase === 'activity' ? '☕' : '📺') : '⏰')}
@@ -1340,7 +1494,7 @@
               <h4 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
                 {toast.title}
                 <span className={`w-2 h-2 rounded-full inline-block ${
-                  isHardLimit ? 'bg-rose-400 animate-ping' : isCapSession ? 'bg-amber-400 animate-ping' : 'bg-blue-400 animate-ping'
+                  isHardLimit ? 'bg-rose-400 animate-ping' : isCapSession ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-ping'
                 }`} />
               </h4>
               <p className="text-xs text-gray-300 mt-1 leading-relaxed">
@@ -1349,7 +1503,24 @@
             </div>
           </div>
 
-          {isHardLimit ? (
+          {/* Action Buttons */}
+          {isClockAlarm ? (
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                onClick={() => onAlarmSnooze && onAlarmSnooze(toast.alarm, 5)}
+                className="py-2.5 px-3 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/15 text-gray-200 border border-white/5 transition-all text-center active:scale-95"
+              >
+                Snooze (+5m)
+              </button>
+
+              <button
+                onClick={onDismiss}
+                className="py-2.5 px-3 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-black shadow-lg shadow-emerald-500/30 transition-all text-center active:scale-95"
+              >
+                Dismiss Alarm ✕
+              </button>
+            </div>
+          ) : isHardLimit ? (
             <div className="grid grid-cols-2 gap-2 pt-1">
               <button
                 onClick={onDismiss}
@@ -1407,7 +1578,7 @@
             onClick={onDismiss}
             className="w-full mt-2 py-1 text-[11px] font-semibold text-gray-400 hover:text-white transition-colors text-center"
           >
-            Dismiss Alert
+            Close Alert
           </button>
         </div>
       );
@@ -1696,9 +1867,244 @@
       );
     }
 
+    // --- SCHEDULED ALARMS DRAWER COMPONENT ---
+    function AlarmsDrawerContent({ alarmManager }) {
+      const [newTime, setNewTime] = useState('08:00');
+      const [newLabel, setNewLabel] = useState('');
+      const [newRepeat, setNewRepeat] = useState('daily');
+      const [isAdding, setIsAdding] = useState(false);
+      const [liveTimeStr, setLiveTimeStr] = useState('');
+
+      // Keep real-time digital clock display updated
+      useEffect(() => {
+        const update = () => {
+          const now = new Date();
+          setLiveTimeStr(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        };
+        update();
+        const interval = setInterval(update, 1000);
+        return () => clearInterval(interval);
+      }, []);
+
+      const handleAdd = (e) => {
+        e.preventDefault();
+        alarmManager.addAlarm({
+          time: newTime,
+          label: newLabel.trim() || 'Reminder',
+          repeat: newRepeat
+        });
+        setNewLabel('');
+        setIsAdding(false);
+      };
+
+      return (
+        <div className="space-y-5">
+          {/* Real-Time Live Clock Display Banner */}
+          <div className="p-4 rounded-3xl bg-gradient-to-r from-emerald-950/30 via-black/40 to-blue-950/30 border border-emerald-500/20 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xl text-emerald-400">
+                ⏰
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-mono tracking-widest text-gray-400 font-bold block">
+                  Current Clock Time
+                </span>
+                <span className="text-xl sm:text-2xl font-light font-mono text-white tracking-wider">
+                  {liveTimeStr}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsAdding(!isAdding)}
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold hover:bg-emerald-500/30 transition-all shadow-lg"
+            >
+              {isAdding ? 'Close' : '+ Set Alarm'}
+            </button>
+          </div>
+
+          {/* Quick Nap / Offset Timers */}
+          <div className="p-3.5 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between gap-2">
+            <span className="text-[10px] uppercase font-mono font-bold text-gray-400 whitespace-nowrap">
+              Quick Timer:
+            </span>
+            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+              <button
+                onClick={() => alarmManager.addQuickAlarm(15, '15m Quick Nap')}
+                className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-mono text-gray-300 hover:text-white"
+                title="Alarm in 15 minutes"
+              >
+                +15m
+              </button>
+              <button
+                onClick={() => alarmManager.addQuickAlarm(30, '30m Power Nap')}
+                className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-mono text-gray-300 hover:text-white"
+                title="Alarm in 30 minutes"
+              >
+                +30m
+              </button>
+              <button
+                onClick={() => alarmManager.addQuickAlarm(45, '45m Rest Alarm')}
+                className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-mono text-gray-300 hover:text-white"
+                title="Alarm in 45 minutes"
+              >
+                +45m
+              </button>
+              <button
+                onClick={() => alarmManager.addQuickAlarm(60, '1-Hour Alert')}
+                className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold"
+                title="Alarm in 1 hour"
+              >
+                +1h
+              </button>
+            </div>
+          </div>
+
+          {/* Add Alarm Form */}
+          {isAdding && (
+            <form onSubmit={handleAdd} className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-3 animate-slide-in-right">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex-1 flex flex-col">
+                  <span className="text-[10px] text-gray-400 font-mono mb-1">Alarm Time (HH:MM)</span>
+                  <input
+                    type="time"
+                    required
+                    value={newTime}
+                    onChange={e => setNewTime(e.target.value)}
+                    className="bg-black/50 border border-white/15 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+
+                <div className="flex-[2] flex flex-col">
+                  <span className="text-[10px] text-gray-400 font-mono mb-1">Label / Objective</span>
+                  <input
+                    type="text"
+                    placeholder="e.g. Wake Up, Turn off TV, Daily Standup..."
+                    value={newLabel}
+                    onChange={e => setNewLabel(e.target.value)}
+                    className="bg-black/50 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <div className="flex items-center gap-2 text-xs text-gray-300">
+                  <span className="font-mono text-[11px] text-gray-400">Repeat:</span>
+                  <select
+                    value={newRepeat}
+                    onChange={e => setNewRepeat(e.target.value)}
+                    className="bg-black/50 border border-white/15 rounded-lg px-2 py-1 text-xs text-white font-mono"
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekdays">Mon - Fri (Weekdays)</option>
+                    <option value="weekends">Sat - Sun (Weekends)</option>
+                    <option value="once">Once Only</option>
+                  </select>
+                </div>
+
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl text-xs transition-all shadow-lg shadow-emerald-500/20"
+                >
+                  Save Alarm
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Configured Alarms List */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center text-xs font-mono text-gray-400 border-b border-white/5 pb-2">
+              <span className="uppercase font-bold">Configured Alarms ({alarmManager.alarms.length})</span>
+              {alarmManager.nextAlarm && (
+                <span className="text-emerald-400 font-semibold">
+                  Next: {format12Hour(alarmManager.nextAlarm.time)} (in {Math.floor(alarmManager.nextAlarm.diffMinutes / 60)}h {alarmManager.nextAlarm.diffMinutes % 60}m)
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1 custom-scroll">
+              {alarmManager.alarms.length === 0 ? (
+                <div className="py-8 text-center text-xs text-gray-500 font-mono">
+                  No alarms configured. Click "+ Set Alarm" or use the quick buttons above.
+                </div>
+              ) : (
+                alarmManager.alarms.map(alarm => {
+                  return (
+                    <div
+                      key={alarm.id}
+                      className={`p-4 rounded-2xl border transition-all flex items-center justify-between ${
+                        alarm.enabled
+                          ? 'bg-white/5 border-white/15 shadow-md'
+                          : 'bg-black/20 border-white/5 opacity-60'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        {/* Toggle Switch */}
+                        <button
+                          onClick={() => alarmManager.toggleAlarm(alarm.id)}
+                          className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-300 relative ${
+                            alarm.enabled ? 'bg-emerald-500 shadow-md shadow-emerald-500/30' : 'bg-white/10'
+                          }`}
+                          title={alarm.enabled ? 'Enabled - Click to disable' : 'Disabled - Click to enable'}
+                        >
+                          <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-300 ${
+                            alarm.enabled ? 'translate-x-5' : 'translate-x-0'
+                          }`} />
+                        </button>
+
+                        <div>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-xl sm:text-2xl font-light font-mono text-white tracking-tight">
+                              {format12Hour(alarm.time)}
+                            </span>
+                            <span className="text-[10px] font-mono text-gray-400">
+                              ({alarm.time})
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs font-semibold text-gray-200">
+                              {alarm.label}
+                            </span>
+                            <span className="text-[9px] uppercase font-mono px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-gray-400">
+                              {alarm.repeat}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Controls */}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => soundEngine.startAlarmLoop()}
+                          className="p-2 rounded-xl text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 text-xs"
+                          title="Test Alarm Sound"
+                        >
+                          🔔
+                        </button>
+
+                        <button
+                          onClick={() => alarmManager.deleteAlarm(alarm.id)}
+                          className="p-2 rounded-xl text-gray-500 hover:text-rose-400 bg-white/5 hover:bg-white/10 text-xs"
+                          title="Delete Alarm"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     // --- POLISHED AUDIO & MUSIC STUDIO COMPONENT ---
     function AudioStudioContent({ musicPlayer }) {
-      const [tab, setTab] = useState('vault'); // 'vault' | 'ambient'
+      const [tab, setTab] = useState('vault');
       const [filterQuery, setFilterQuery] = useState('');
       const [ambientLevels, setAmbientLevels] = useState({
         rain: 0,
@@ -1740,7 +2146,6 @@
 
       return (
         <div className="space-y-5">
-          {/* Top Sub-tabs */}
           <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
             <button
               onClick={() => setTab('vault')}
@@ -1773,26 +2178,19 @@
 
           {tab === 'vault' ? (
             <div className="space-y-5">
-              
-              {/* NOW PLAYING HERO CARD */}
               <div className="p-5 rounded-3xl bg-gradient-to-b from-white/10 to-white/5 border border-white/15 shadow-2xl relative overflow-hidden">
                 <div className="flex flex-col sm:flex-row items-center gap-5">
-                  
-                  {/* Rotating Vinyl Disc Artwork */}
                   <div className="relative shrink-0">
                     <div className={`w-28 h-28 sm:w-32 sm:h-32 rounded-full vinyl-disc border-2 border-white/20 flex items-center justify-center ${
                       musicPlayer.isPlaying ? 'animate-spin-slow' : ''
                     }`}>
-                      {/* Center Label */}
                       <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 via-indigo-500 to-purple-600 border border-white/40 flex items-center justify-center shadow-lg">
                         <span className="text-xs">🎵</span>
                       </div>
                     </div>
-                    {/* Glowing Accent Hub */}
                     <div className="absolute inset-0 rounded-full pointer-events-none bg-blue-500/10 blur-xl" />
                   </div>
 
-                  {/* Track Meta & Status */}
                   <div className="flex-1 w-full text-center sm:text-left space-y-2">
                     <div className="flex items-center justify-center sm:justify-start gap-2">
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 uppercase">
@@ -1817,7 +2215,6 @@
                       {curTrack?.size ? `${curTrack.size} • Flow Audio Studio` : 'Select or upload a track below'}
                     </p>
 
-                    {/* Scrubber Range */}
                     <div className="space-y-1 pt-1">
                       <input
                         type="range"
@@ -1836,10 +2233,8 @@
                   </div>
                 </div>
 
-                {/* Tactile Playback Controls */}
                 <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between">
                   <div className="flex items-center gap-1.5 sm:gap-2">
-                    {/* Shuffle */}
                     <button
                       onClick={() => musicPlayer.setIsShuffle(!musicPlayer.isShuffle)}
                       className={`p-2 rounded-xl text-xs transition-all ${
@@ -1850,7 +2245,6 @@
                       🔀
                     </button>
 
-                    {/* Repeat */}
                     <button
                       onClick={() => musicPlayer.setRepeatMode(m => m === 'all' ? 'one' : m === 'one' ? 'off' : 'all')}
                       className={`p-2 rounded-xl text-xs transition-all ${
@@ -1861,7 +2255,6 @@
                       {musicPlayer.repeatMode === 'one' ? '🔂' : '🔁'}
                     </button>
 
-                    {/* Rewind 10s */}
                     <button
                       onClick={() => musicPlayer.skip(-10)}
                       className="p-2 rounded-xl text-xs text-gray-400 hover:text-white hover:bg-white/5"
@@ -1871,7 +2264,6 @@
                     </button>
                   </div>
 
-                  {/* Main Center Transport */}
                   <div className="flex items-center gap-2">
                     <button
                       onClick={musicPlayer.handlePrev}
@@ -1898,7 +2290,6 @@
                     </button>
                   </div>
 
-                  {/* Fast Forward 10s & Ducking */}
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <button
                       onClick={() => musicPlayer.skip(10)}
@@ -1920,7 +2311,6 @@
                   </div>
                 </div>
 
-                {/* Volume Slider Bar */}
                 <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2 text-xs text-gray-400 font-mono">
                     <span>🔊</span>
@@ -1941,7 +2331,6 @@
                 </div>
               </div>
 
-              {/* QUICK PROCEDURAL LO-FI CHILL RADIO BUTTON */}
               <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/30 to-purple-950/30 border border-blue-500/30 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-xl">
@@ -1969,7 +2358,6 @@
                 </button>
               </div>
 
-              {/* DRAG & DROP UPLOAD ZONE */}
               <div className="border-2 border-dashed border-white/15 hover:border-blue-400/50 rounded-2xl p-5 text-center transition-colors bg-white/5 cursor-pointer relative">
                 <input
                   type="file"
@@ -1989,7 +2377,6 @@
                 </div>
               </div>
 
-              {/* PLAYLIST MANAGER */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -2073,7 +2460,6 @@
 
             </div>
           ) : (
-            /* AMBIENT SOUNDSCAPES MIXER */
             <div className="space-y-4">
               <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-3">
                 <div className="flex items-center justify-between">
@@ -2118,7 +2504,6 @@
                 </div>
               </div>
 
-              {/* Individual Multi-Channel Knobs */}
               <div className="space-y-3 p-4 bg-white/5 rounded-2xl border border-white/10">
                 {[
                   { id: 'rain', label: 'Rainfall & Storm', icon: '🌧️', desc: 'Pink-noise organic rain' },
@@ -2317,6 +2702,7 @@
                 { key: 'Space', desc: 'Start / Pause Active Timer' },
                 { key: 'R', desc: 'Reset Timer Interval' },
                 { key: 'Z', desc: 'Zen Clean Mode' },
+                { key: 'A', desc: 'Open Clock Alarms (Set Time)' },
                 { key: 'B', desc: 'Open Time Budgets & 30-15 Breaks' },
                 { key: 'T', desc: 'Open Task Manager' },
                 { key: 'M', desc: 'Open Music Studio & Vault' },
@@ -2367,6 +2753,24 @@
 
       const budgetManager = useBudgetManager(handleLimitExceeded);
 
+      // Scheduled Clock Alarm Callback
+      const handleClockAlarm = useCallback((alarm) => {
+        soundEngine.startAlarmLoop();
+        const time12 = format12Hour(alarm.time);
+        notifier.dispatch(`⏰ Alarm: ${alarm.label} (${time12})`, `Your scheduled alarm for ${time12} is ringing!`);
+
+        setWindowsToast({
+          type: 'clock_alarm',
+          title: `Alarm: ${time12}`,
+          message: `${alarm.label} - Scheduled alarm time reached!`,
+          icon: '⏰',
+          time: alarm.time,
+          alarm
+        });
+      }, []);
+
+      const alarmManager = useAlarmManager(handleClockAlarm);
+
       const handleBudgetTick = useCallback((minutesDelta) => {
         if (budgetManager.activeBudgetId) {
           budgetManager.logMinutes(budgetManager.activeBudgetId, minutesDelta);
@@ -2380,7 +2784,7 @@
       const taskManager = useTaskManager();
       const musicPlayer = useMusicPlayer(timer.phase.includes('Break') || timer.phase === 'break');
 
-      const [drawer, setDrawer] = useState(null); // 'budgets' | 'tasks' | 'audio' | 'telemetry' | 'settings'
+      const [drawer, setDrawer] = useState(null); // 'alarms' | 'budgets' | 'tasks' | 'audio' | 'telemetry' | 'settings'
       const [isZen, setIsZen] = useState(false);
       const [intention, setIntention] = useState(() => storage.get('flow_daily_intention_v8', 'Maintain flow and healthy boundaries'));
       const [isEditingIntention, setIsEditingIntention] = useState(false);
@@ -2402,6 +2806,11 @@
         timer.toggle();
       };
 
+      const handleAlarmSnooze = (alarm, snoozeMins = 5) => {
+        dismissToast();
+        alarmManager.snoozeAlarm(alarm, snoozeMins);
+      };
+
       const toggleFullscreen = () => {
         if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
         else document.exitFullscreen().catch(()=>{});
@@ -2414,6 +2823,7 @@
           tasks: taskManager.tasks,
           budgets: budgetManager.budgets,
           budgetUsage: budgetManager.usageMap,
+          alarms: alarmManager.alarms,
           exportDate: new Date().toISOString()
         };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -2435,6 +2845,7 @@
             if (data.tasks) storage.set('flow_tasks_v8', data.tasks);
             if (data.budgets) storage.set('flow_budgets_v8', data.budgets);
             if (data.budgetUsage) storage.set('flow_budget_usage_v8', data.budgetUsage);
+            if (data.alarms) storage.set('flow_clock_alarms_v1', data.alarms);
             alert('Backup successfully imported! Reloading...');
             window.location.reload();
           } catch(err) {
@@ -2456,6 +2867,7 @@
           if (e.code === 'Space') { e.preventDefault(); timer.toggle(); }
           if (e.key.toLowerCase() === 'z') setIsZen(p => !p);
           if (e.key.toLowerCase() === 'r') timer.reset();
+          if (e.key.toLowerCase() === 'a') setDrawer(d => d === 'alarms' ? null : 'alarms');
           if (e.key.toLowerCase() === 'b') setDrawer(d => d === 'budgets' ? null : 'budgets');
           if (e.key.toLowerCase() === 't') setDrawer(d => d === 'tasks' ? null : 'tasks');
           if (e.key.toLowerCase() === 'm') setDrawer(d => d === 'audio' ? null : 'audio');
@@ -2485,6 +2897,10 @@
         return budgetManager.budgets.filter(b => budgetManager.getUsage(b.id) >= b.maxMinutes).length;
       }, [budgetManager]);
 
+      const enabledAlarmsCount = useMemo(() => {
+        return alarmManager.alarms.filter(a => a.enabled).length;
+      }, [alarmManager.alarms]);
+
       return (
         <div className="min-h-screen flex flex-col justify-between relative overflow-hidden bg-grid-cyber pb-28 sm:pb-8">
           
@@ -2495,6 +2911,7 @@
             onSnooze={snoozeToast}
             onStartNext={startNextFromToast}
             onSwitchFocus={switchFromBudgetToFocus}
+            onAlarmSnooze={handleAlarmSnooze}
           />
 
           {/* KEYBOARD SHORTCUTS MODAL */}
@@ -2559,6 +2976,20 @@
               <span className="font-mono text-xs tracking-[0.25em] uppercase font-bold text-gray-300">
                 FLOW // {timer.mode === 'cap_tracker' ? 'ACTIVITY GUARD' : 'COMMAND'}
               </span>
+
+              {/* Next Upcoming Alarm Pill */}
+              {alarmManager.nextAlarm && (
+                <div
+                  onClick={() => setDrawer('alarms')}
+                  className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-mono cursor-pointer hover:bg-emerald-500/20 transition-all ml-2"
+                  title="Click to view alarms"
+                >
+                  <span>⏰ Next: {format12Hour(alarmManager.nextAlarm.time)}</span>
+                  <span className="text-gray-400">
+                    ({Math.floor(alarmManager.nextAlarm.diffMinutes / 60)}h {alarmManager.nextAlarm.diffMinutes % 60}m)
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Daily Intention */}
@@ -2827,43 +3258,57 @@
           </main>
 
           {/* DOCK BAR */}
-          <nav className={`fixed bottom-5 left-1/2 -translate-x-1/2 glass px-3 py-2 rounded-full flex items-center gap-2 shadow-2xl z-30 transition-all duration-500 ${
+          <nav className={`fixed bottom-5 left-1/2 -translate-x-1/2 glass px-3 py-2 rounded-full flex items-center gap-1.5 sm:gap-2 shadow-2xl z-30 transition-all duration-500 ${
             isZen ? 'opacity-0 translate-y-10 pointer-events-none' : 'opacity-100 translate-y-0'
           }`}>
+            {/* NEW: ALARMS BUTTON */}
+            <button
+              onClick={() => setDrawer('alarms')}
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${
+                drawer === 'alarms' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <span>⏰ Alarms</span>
+              {enabledAlarmsCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-emerald-500 text-black font-mono text-[9px] flex items-center justify-center font-bold">
+                  {enabledAlarmsCount}
+                </span>
+              )}
+            </button>
+
             <button
               onClick={() => setDrawer('budgets')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${
                 drawer === 'budgets' ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
-              <span>⏳ Budgets (30/15)</span>
+              <span>⏳ Budgets</span>
               {exceededCapsCount > 0 ? (
-                <span className="w-5 h-5 rounded-full bg-rose-500 text-white font-mono text-[10px] flex items-center justify-center font-bold animate-pulse">
+                <span className="w-4 h-4 rounded-full bg-rose-500 text-white font-mono text-[9px] flex items-center justify-center font-bold animate-pulse">
                   {exceededCapsCount}
                 </span>
               ) : (
-                <span className="text-[10px] text-gray-500 font-mono">3h cap</span>
+                <span className="text-[10px] text-gray-500 font-mono hidden sm:inline">3h cap</span>
               )}
             </button>
 
             <button
               onClick={() => setDrawer('tasks')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${
                 drawer === 'tasks' ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
               Tasks
               {taskManager.tasks.filter(t => !t.completed).length > 0 && (
-                <span className="w-5 h-5 rounded-full bg-blue-500 text-black font-mono text-[10px] flex items-center justify-center font-bold">
+                <span className="w-4 h-4 rounded-full bg-blue-500 text-black font-mono text-[9px] flex items-center justify-center font-bold">
                   {taskManager.tasks.filter(t => !t.completed).length}
                 </span>
               )}
             </button>
 
-            {/* UPGRADED MUSIC DOCK BUTTON */}
             <button
               onClick={() => setDrawer('audio')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${
                 drawer === 'audio' ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
@@ -2879,20 +3324,20 @@
 
             <button
               onClick={() => setDrawer('telemetry')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${
                 drawer === 'telemetry' ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
-              Telemetry
+              Stats
             </button>
 
             <button
               onClick={() => setDrawer('settings')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${
                 drawer === 'settings' ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
-              Settings
+              ⚙️
             </button>
           </nav>
 
@@ -2903,10 +3348,21 @@
               <div className="relative w-full sm:max-w-xl max-h-[88vh] bg-[#0c0c14] border border-white/15 sm:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col overflow-hidden z-10 p-6 space-y-6">
                 <div className="flex items-center justify-between border-b border-white/5 pb-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gray-300 font-mono">
-                    {drawer === 'budgets' ? 'Time Budgets & 30-15 Break Cycles' : drawer === 'audio' ? 'Audio Studio & Ambient Mixer' : drawer}
+                    {drawer === 'alarms' 
+                      ? 'Scheduled Clock Alarms'
+                      : drawer === 'budgets' 
+                      ? 'Time Budgets & 30-15 Break Cycles' 
+                      : drawer === 'audio' 
+                      ? 'Audio Studio & Ambient Mixer' 
+                      : drawer}
                   </h3>
                   <button onClick={() => setDrawer(null)} className="text-gray-400 hover:text-white">✕</button>
                 </div>
+
+                {/* ALARMS DRAWER */}
+                {drawer === 'alarms' && (
+                  <AlarmsDrawerContent alarmManager={alarmManager} />
+                )}
 
                 {/* BUDGETS DRAWER */}
                 {drawer === 'budgets' && (
@@ -2994,7 +3450,7 @@
                   </div>
                 )}
 
-                {/* UPGRADED AUDIO STUDIO DRAWER */}
+                {/* AUDIO STUDIO DRAWER */}
                 {drawer === 'audio' && (
                   <AudioStudioContent musicPlayer={musicPlayer} />
                 )}

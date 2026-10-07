@@ -54,6 +54,21 @@ An ultra-sleek, cyberpunk-inspired productivity dashboard and habit control cent
 - **12-Week Heatmap (84 Days)**: GitHub-style activity contribution grid.
 - **7-Day Trend Chart**: Vertical bar telemetry tracking consistency over the last week.
 
+### ⏰ 5. Scheduled Clock Alarm Engine
+- **Set Specific Clock Times**:
+  - Direct time-picker input for precise hours and minutes (e.g. `07:30 AM`, `10:15 PM`).
+  - Custom label tags (e.g. *"Wake Up"*, *"Stand Up & Hydrate"*, *"End Work Day"*, *"Power Nap"*).
+  - Recurrence rules: **Daily**, **Weekdays (Mon-Fri)**, **Weekends (Sat-Sun)**, or **Once**.
+- **Real-Time Chime & Desktop Notifications**:
+  - Live background watcher detects the exact minute without audio drift.
+  - Plays an authentic repeating Windows clock chime loop (`alarm_chime`) via the Web Audio API.
+  - Fires HTML5 Desktop Notifications if granted permission.
+  - Prompts an interactive **Windows 11 Fluent Acrylic Toast Notification** with **Snooze (+5m)**, **Snooze (+10m)**, or **Dismiss**.
+- **Quick Power Nap Timers**:
+  - One-click buttons to set an alarm offset from right now: **`+15m`**, **`+30m`**, **`+45m`**, and **`+1h`**.
+- **Header Countdown Pill**:
+  - Real-time indicator in the top header displaying the next scheduled alarm and hours/minutes remaining (e.g. `⏰ Next: 08:00 AM (in 4h 30m)`).
+
 ---
 
 ## ⌨️ Keyboard Shortcuts
@@ -63,6 +78,7 @@ An ultra-sleek, cyberpunk-inspired productivity dashboard and habit control cent
 | `Space` | Start / Pause Active Timer |
 | `R` | Reset Timer Interval |
 | `Z` | Toggle Zen Clean Mode |
+| `A` | Open Scheduled Alarms Drawer |
 | `B` | Open Time Budgets & 30-15 Break Cycles Drawer |
 | `T` | Open Task Manager Drawer |
 | `M` | Open Polished Music Studio & Vault |
