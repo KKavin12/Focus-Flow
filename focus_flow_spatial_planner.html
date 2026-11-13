@@ -1,0 +1,2783 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Focus Flow — Quiet Instrument for Focus, Calendar & Time Management</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Strict 2-Font System (Inter + JetBrains Mono) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <style>
+    /* ==========================================================================
+       1. TASTE-SKILL v2.5 ("THE QUIET INSTRUMENT" & "THE DARK ROOM")
+          + EMIL KOWALSKI MOTION DISCIPLINE (EXPLICIT COMPOSITOR TRANSITIONS)
+       ========================================================================== */
+    :root,
+    :root[data-theme="dark"] {
+      --bg-void: #070709;
+      --bg-elevated: #0D0E12;
+      --bg-interactive: #13151B;
+      --bg-hover: #191C24;
+      --bg-glass: rgba(13, 14, 18, 0.84);
+
+      --border-hairline: rgba(255, 255, 255, 0.07);
+      --border-strong: rgba(255, 255, 255, 0.13);
+      --border-focus: rgba(94, 106, 210, 0.65);
+
+      --specular-inset: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+      --elevation-card: 0 16px 36px -12px rgba(0, 0, 0, 0.72), var(--specular-inset);
+      --elevation-modal: 0 28px 64px -16px rgba(0, 0, 0, 0.88), var(--specular-inset);
+
+      --text-primary: #F3F4F6;
+      --text-secondary: #8E95A5;
+      --text-muted: #555B69;
+
+      /* Precision Instrument Accents */
+      --accent-electric: #6366F1;
+      --accent-electric-soft: rgba(99, 102, 241, 0.13);
+      --accent-cyan: #06B6D4;
+      --accent-cyan-soft: rgba(6, 182, 212, 0.13);
+      --accent-emerald: #10B981;
+      --accent-emerald-soft: rgba(16, 185, 129, 0.13);
+      --accent-amber: #F59E0B;
+      --accent-amber-soft: rgba(245, 158, 11, 0.13);
+      --accent-rose: #F43F5E;
+      --accent-rose-soft: rgba(244, 63, 94, 0.13);
+
+      --grid-line: rgba(255, 255, 255, 0.04);
+      --grid-subline: rgba(255, 255, 255, 0.02);
+    }
+
+    :root[data-theme="light"] {
+      --bg-void: #F7F7F5;
+      --bg-elevated: #FFFFFF;
+      --bg-interactive: #F0F1EE;
+      --bg-hover: #E7E8E3;
+      --bg-glass: rgba(255, 255, 255, 0.88);
+
+      --border-hairline: rgba(17, 24, 39, 0.08);
+      --border-strong: rgba(17, 24, 39, 0.15);
+      --border-focus: rgba(79, 70, 229, 0.55);
+
+      --specular-inset: inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+      --elevation-card: 0 8px 24px -8px rgba(17, 24, 39, 0.06), var(--specular-inset);
+      --elevation-modal: 0 24px 48px -12px rgba(17, 24, 39, 0.15), var(--specular-inset);
+
+      --text-primary: #111318;
+      --text-secondary: #5A606D;
+      --text-muted: #8E95A2;
+
+      --accent-electric: #4F46E5;
+      --accent-electric-soft: rgba(79, 70, 229, 0.1);
+      --accent-cyan: #0891B2;
+      --accent-cyan-soft: rgba(8, 145, 178, 0.1);
+      --accent-emerald: #059669;
+      --accent-emerald-soft: rgba(5, 150, 105, 0.1);
+      --accent-amber: #D97706;
+      --accent-amber-soft: rgba(217, 119, 6, 0.1);
+      --accent-rose: #E11D48;
+      --accent-rose-soft: rgba(225, 29, 72, 0.1);
+
+      --grid-line: rgba(17, 24, 39, 0.06);
+      --grid-subline: rgba(17, 24, 39, 0.03);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-void);
+      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      letter-spacing: -0.011em;
+      overflow: hidden;
+    }
+
+    h1, h2, h3, .heading-tight {
+      letter-spacing: -0.025em;
+    }
+
+    /* Tabular Nums Monospace for Zero Jitter */
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+
+    /* Minimal Scrollbars */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-strong);
+      border-radius: 9999px;
+    }
+
+    /* ==========================================================================
+       2. INSTRUMENT SURFACES & EMIL KOWALSKI TACTILE FEEDBACK
+       ========================================================================== */
+    .instrument-card {
+      position: relative;
+      background-color: var(--bg-elevated);
+      border: 1px solid var(--border-hairline);
+      border-radius: 14px;
+      box-shadow: var(--elevation-card);
+      transition:
+        border-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Cursor-Tracked Specular Spotlight Glow along 1px Borders & Surface */
+    .instrument-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background: radial-gradient(
+        520px circle at var(--mouse-x, -500px) var(--mouse-y, -500px),
+        rgba(255, 255, 255, 0.045),
+        transparent 45%
+      );
+      opacity: 0;
+      transition: opacity 280ms ease;
+      z-index: 0;
+    }
+    .instrument-card:hover::before {
+      opacity: 1;
+    }
+    .instrument-card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .instrument-sub {
+      background-color: var(--bg-interactive);
+      border: 1px solid var(--border-hairline);
+      border-radius: 10px;
+      box-shadow: var(--specular-inset);
+      transition: border-color 160ms ease, background-color 160ms ease;
+    }
+
+    /* Tactile Press State: Never use transition: all */
+    .tactile-btn {
+      transition:
+        transform 150ms cubic-bezier(0.22, 1, 0.36, 1),
+        background-color 150ms ease,
+        border-color 150ms ease,
+        color 150ms ease,
+        box-shadow 150ms ease,
+        opacity 150ms ease;
+      will-change: transform;
+    }
+    .tactile-btn:active {
+      transform: scale(0.965);
+    }
+
+    .btn-primary {
+      background-color: var(--text-primary);
+      color: var(--bg-void);
+      font-weight: 600;
+      border-radius: 9px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+    }
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+
+    .btn-electric {
+      background-color: var(--accent-electric);
+      color: #FFFFFF;
+      font-weight: 600;
+      border-radius: 9px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 4px 14px rgba(99, 102, 241, 0.28);
+    }
+    .btn-electric:hover {
+      filter: brightness(1.08);
+    }
+
+    .btn-spotify {
+      background-color: #1DB954;
+      color: #050806;
+      font-weight: 600;
+      border-radius: 9px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 4px 14px rgba(29, 185, 84, 0.25);
+    }
+    .btn-spotify:hover {
+      filter: brightness(1.07);
+    }
+
+    .btn-ghost {
+      background-color: var(--bg-interactive);
+      color: var(--text-primary);
+      border: 1px solid var(--border-hairline);
+      border-radius: 9px;
+      font-weight: 500;
+    }
+    .btn-ghost:hover {
+      background-color: var(--bg-hover);
+      border-color: var(--border-strong);
+    }
+
+    /* Precision Input */
+    .input-instrument {
+      background-color: var(--bg-void);
+      border: 1px solid var(--border-strong);
+      color: var(--text-primary);
+      border-radius: 9px;
+      padding: 8px 12px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+    }
+    .input-instrument:focus {
+      border-color: var(--accent-electric);
+      box-shadow: 0 0 0 3px var(--accent-electric-soft);
+    }
+
+    /* Keyboard KBD Badge */
+    .kbd-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      line-height: 1;
+      padding: 3px 5px;
+      border-radius: 5px;
+      background-color: var(--bg-void);
+      border: 1px solid var(--border-strong);
+      color: var(--text-secondary);
+      box-shadow: inset 0 -1px 0 rgba(0,0,0,0.3);
+    }
+
+    /* ==========================================================================
+       3. SLIDING SEGMENTED NAVIGATION PILL (WITH INSTANT KEYBOARD SNAP MODE)
+       ========================================================================== */
+    .seg-nav-wrap {
+      position: relative;
+      display: inline-flex;
+      padding: 3px;
+      background-color: var(--bg-interactive);
+      border: 1px solid var(--border-hairline);
+      border-radius: 11px;
+    }
+    .seg-nav-indicator {
+      position: absolute;
+      top: 3px;
+      bottom: 3px;
+      left: 3px;
+      border-radius: 8px;
+      background-color: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), var(--specular-inset);
+      pointer-events: none;
+      transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), width 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    /* Emil Kowalski rule: Keyboard-initiated tab switches happen at 0ms */
+    .seg-nav-indicator.instant-snap {
+      transition: none !important;
+    }
+    .seg-nav-btn {
+      position: relative;
+      z-index: 1;
+      padding: 6px 14px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      border-radius: 8px;
+      transition: color 120ms ease;
+    }
+    .seg-nav-btn.active {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* ==========================================================================
+       4. GOOGLE CALENDAR-STYLE MONTH GRID & HOURLY TIMELINE
+       ========================================================================== */
+    .cal-day-cell {
+      min-height: 98px;
+      background-color: var(--bg-elevated);
+      border-right: 1px solid var(--border-hairline);
+      border-bottom: 1px solid var(--border-hairline);
+      padding: 7px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: background-color 120ms ease;
+      position: relative;
+    }
+    .cal-day-cell:hover {
+      background-color: var(--bg-interactive);
+    }
+    .cal-day-cell.selected-day {
+      background-color: var(--accent-electric-soft);
+      box-shadow: inset 0 0 0 1px var(--accent-electric);
+    }
+    .cal-day-cell.muted-day {
+      opacity: 0.36;
+    }
+
+    /* Day Timeline Grid (06:00 - 23:00 = 17 hours * 60px = 1020px) */
+    .day-timeline-surface {
+      position: relative;
+      height: 1020px;
+      background-image:
+        linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-subline) 1px, transparent 1px);
+      background-size: 100% 60px, 100% 30px;
+      user-select: none;
+    }
+    .day-hour-slot {
+      height: 60px;
+      position: relative;
+    }
+
+    /* Scheduled Time Block Pill on Timeline */
+    .timeline-block {
+      position: absolute;
+      left: 64px;
+      right: 10px;
+      border-radius: 8px;
+      padding: 5px 10px;
+      cursor: pointer;
+      overflow: hidden;
+      z-index: 10;
+      backdrop-filter: blur(8px);
+      transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 140ms ease;
+    }
+    .timeline-block:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.5);
+      z-index: 20;
+    }
+    .timeline-block:active {
+      transform: scale(0.99);
+    }
+
+    .cat-deep {
+      background-color: var(--accent-electric-soft);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      border-left: 3px solid var(--accent-electric);
+    }
+    .cat-study {
+      background-color: var(--accent-cyan-soft);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      border-left: 3px solid var(--accent-cyan);
+    }
+    .cat-meeting {
+      background-color: var(--accent-amber-soft);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-left: 3px solid var(--accent-amber);
+    }
+    .cat-rest {
+      background-color: var(--accent-emerald-soft);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-left: 3px solid var(--accent-emerald);
+    }
+
+    /* Live Laser Time Needle */
+    .laser-now-line {
+      position: absolute;
+      left: 56px;
+      right: 0;
+      height: 1.5px;
+      background: linear-gradient(90deg, var(--accent-rose) 0%, rgba(244, 63, 94, 0.2) 100%);
+      z-index: 25;
+      pointer-events: none;
+    }
+    .laser-now-dot {
+      position: absolute;
+      left: -4px;
+      top: -3.5px;
+      width: 8px;
+      height: 8px;
+      border-radius: 9999px;
+      background-color: var(--accent-rose);
+      box-shadow: 0 0 10px var(--accent-rose);
+    }
+
+    /* ==========================================================================
+       5. POPOVER & MODAL ENTER/EXIT ANIMATIONS (EMIL KOWALSKI SPEC)
+          Never scale(0), always scale(0.96) + blur(2px) under 200ms
+       ========================================================================== */
+    .modal-backdrop {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .modal-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-dialog {
+      transform: scale(0.96) translateY(4px);
+      opacity: 0;
+      filter: blur(2px);
+      transition:
+        transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 200ms cubic-bezier(0.16, 1, 0.3, 1),
+        filter 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .modal-backdrop.open .modal-dialog {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+      filter: blur(0px);
+    }
+
+    /* Command Palette: 0ms Instant Open on Keyboard Shortcut */
+    .cmd-palette-backdrop {
+      display: none;
+    }
+    .cmd-palette-backdrop.open {
+      display: flex;
+    }
+
+    /* SVG Ring Precision */
+    .timer-ring-progress {
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+      transition: stroke-dashoffset 450ms cubic-bezier(0.22, 1, 0.36, 1), stroke 300ms ease;
+    }
+
+    /* Breathing Aura when Timer is Running */
+    @keyframes flowAuraPulse {
+      0%, 100% {
+        opacity: 0.16;
+        transform: scale(0.98);
+      }
+      50% {
+        opacity: 0.34;
+        transform: scale(1.03);
+      }
+    }
+    .timer-aura-glow {
+      opacity: 0;
+      transition: opacity 400ms cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+    .timer-aura-glow.running {
+      opacity: 1;
+      animation: flowAuraPulse 4s ease-in-out infinite;
+    }
+
+    /* View Visibility & Staggered Choreography */
+    .workspace-view {
+      display: none;
+    }
+    .workspace-view.active {
+      display: flex;
+    }
+    @keyframes viewStaggerIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.994);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    .workspace-view.animate-enter > * {
+      animation: viewStaggerIn 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    /* Persistent Floating Spotify Sonic Deck (Never Unmounts Across Tabs) */
+    .spotify-floating-deck {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      width: 390px;
+      max-width: calc(100vw - 32px);
+      z-index: 45;
+      transform: translateY(18px) scale(0.96);
+      opacity: 0;
+      pointer-events: none;
+      filter: blur(4px);
+      transition:
+        transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+        filter 220ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .spotify-floating-deck.open {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+      pointer-events: auto;
+      filter: blur(0px);
+    }
+
+    /* Equalizer Bars Animation */
+    @keyframes eqBarBounce {
+      0%, 100% { transform: scaleY(0.3); }
+      50% { transform: scaleY(1); }
+    }
+    .eq-bar {
+      width: 2.5px;
+      height: 11px;
+      background-color: #1DB954;
+      border-radius: 99px;
+      transform-origin: bottom;
+      animation: eqBarBounce 0.9s ease-in-out infinite;
+    }
+    .eq-bar:nth-child(2) { animation-delay: 0.2s; }
+    .eq-bar:nth-child(3) { animation-delay: 0.4s; }
+
+    /* Task Row Micro-Interaction */
+    .task-row-item {
+      transition:
+        transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+        background-color 160ms ease,
+        border-color 160ms ease,
+        opacity 180ms ease;
+    }
+    .task-row-item:hover {
+      transform: translateX(2px);
+    }
+
+    /* Sonner-Style Stacked Toast */
+    .sonner-toast {
+      transform: translateY(12px) scale(0.96);
+      opacity: 0;
+      pointer-events: none;
+      transition:
+        transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 220ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .sonner-toast.visible {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+      pointer-events: auto;
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col select-none">
+
+  <!-- ==========================================================================
+       PERSISTENT TOP INSTRUMENT HEADER
+       ========================================================================== -->
+  <header class="h-14 px-4 sm:px-8 border-b border-[var(--border-hairline)] bg-[var(--bg-elevated)] flex items-center justify-between gap-4 shrink-0 z-30">
+    
+    <!-- Left: Brand Identity + Active Date Pill -->
+    <div class="flex items-center gap-4 min-w-0">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-[var(--text-primary)] text-[var(--bg-void)] flex items-center justify-center font-bold text-xs shadow-sm">
+          <i class="ph-bold ph-wave-sine text-sm"></i>
+        </div>
+        <span class="font-semibold text-sm tracking-tight text-[var(--text-primary)]">Focus Flow</span>
+      </div>
+
+      <div class="h-4 w-[1px] bg-[var(--border-hairline)] hidden sm:block"></div>
+
+      <!-- Global Date Stepper -->
+      <div class="hidden sm:flex items-center gap-1.5">
+        <button onclick="stepSelectedDate(-1)" class="tactile-btn p-1 rounded-md hover:bg-[var(--bg-interactive)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]" title="Previous Day">
+          <i class="ph-bold ph-caret-left text-xs"></i>
+        </button>
+        <button onclick="jumpToToday()" class="tactile-btn px-2 py-1 rounded-md hover:bg-[var(--bg-interactive)] flex items-center gap-2">
+          <span id="headerDateText" class="text-xs font-medium text-[var(--text-primary)]">Fri, Nov 13</span>
+          <span id="headerDateBadge" class="text-[10px] font-mono-num font-semibold px-1.5 py-0.5 rounded bg-[var(--accent-electric-soft)] text-[var(--accent-electric)]">TODAY</span>
+        </button>
+        <button onclick="stepSelectedDate(1)" class="tactile-btn p-1 rounded-md hover:bg-[var(--bg-interactive)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]" title="Next Day">
+          <i class="ph-bold ph-caret-right text-xs"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Center: Sliding Pill Segmented Navigation (3 Core Views) -->
+    <nav class="seg-nav-wrap" id="mainSegmentedNav">
+      <div id="segNavIndicator" class="seg-nav-indicator"></div>
+
+      <button onclick="switchView('focus', false)" id="navBtn-focus" class="seg-nav-btn active">
+        <i class="ph-bold ph-timer text-sm"></i>
+        <span>Focus Flow</span>
+        <span class="kbd-badge hidden md:inline">1</span>
+      </button>
+
+      <button onclick="switchView('calendar', false)" id="navBtn-calendar" class="seg-nav-btn">
+        <i class="ph-bold ph-calendar-blank text-sm"></i>
+        <span>Calendar</span>
+        <span class="kbd-badge hidden md:inline">2</span>
+      </button>
+
+      <button onclick="switchView('timemgmt', false)" id="navBtn-timemgmt" class="seg-nav-btn">
+        <i class="ph-bold ph-chart-bar-horizontal text-sm"></i>
+        <span>Time Management</span>
+        <span class="kbd-badge hidden md:inline">3</span>
+      </button>
+    </nav>
+
+    <!-- Right: Persistent Live Timer Pill + Persistent Spotify Trigger + Command Palette + Theme Toggle -->
+    <div class="flex items-center gap-2">
+      <!-- Live Mini Timer Pill (Visible across Calendar & Time Mgmt when session is active/paused) -->
+      <div id="persistentTimerPill" onclick="switchView('focus', false)" class="hidden items-center gap-2 px-2.5 py-1 rounded-full bg-[var(--accent-electric-soft)] border border-[var(--accent-electric)]/40 cursor-pointer tactile-btn">
+        <span id="persistentTimerDot" class="w-1.5 h-1.5 rounded-full bg-[var(--accent-electric)] animate-pulse"></span>
+        <span id="persistentTimerClock" class="text-xs font-mono-num font-semibold text-[var(--text-primary)]">25:00</span>
+        <button onclick="event.stopPropagation(); toggleTimer();" class="p-0.5 rounded-full hover:bg-black/20 text-[var(--text-primary)]">
+          <i id="persistentTimerIcon" class="ph-fill ph-pause text-xs"></i>
+        </button>
+      </div>
+
+      <!-- Persistent Spotify Sonic Deck Toggle Button (Music never stops across tabs) -->
+      <button onclick="toggleSpotifyDrawer()" id="headerSpotifyBtn" class="tactile-btn btn-ghost px-2.5 py-1.5 text-xs flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]" title="Toggle Persistent Spotify Sonic Deck (M)">
+        <div class="flex items-end gap-0.5 h-3">
+          <span class="eq-bar"></span>
+          <span class="eq-bar"></span>
+          <span class="eq-bar"></span>
+        </div>
+        <span id="headerSpotifyLabel" class="hidden xl:inline font-medium text-[var(--text-primary)] truncate max-w-[115px]">Deep Flow Lofi</span>
+        <span class="kbd-badge hidden sm:inline">M</span>
+      </button>
+
+      <!-- Command Palette Trigger (⌘K) -->
+      <button onclick="openCommandPalette()" class="tactile-btn btn-ghost px-2.5 py-1.5 text-xs flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+        <i class="ph ph-magnifying-glass text-xs"></i>
+        <span class="hidden lg:inline">Command</span>
+        <span class="kbd-badge">⌘K</span>
+      </button>
+
+      <!-- Light/Dark Instrument Toggle -->
+      <button onclick="toggleTheme()" class="tactile-btn btn-ghost p-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]" title="Switch Instrument Theme">
+        <i id="themeToggleIcon" class="ph-bold ph-moon text-sm"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       MAIN WORKSPACE CONTAINER (EQUAL HORIZONTAL MARGINS, CALM VISUAL RHYTHM)
+       ========================================================================== -->
+  <main class="flex-1 overflow-hidden flex flex-col">
+
+    <!-- ========================================================================
+         VIEW 1: FOCUS FLOW (PRECISION TIMER + SPOTIFY SONIC DECK + TASK QUEUE)
+         ======================================================================== -->
+    <section id="view-focus" class="workspace-view active flex-1 overflow-y-auto px-4 sm:px-8 py-6">
+      <div class="max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start my-auto">
+
+        <!-- Left 7 Columns: Precision Focus Timer Instrument + Dual-Mode Spotify & Acoustic Dock -->
+        <div class="lg:col-span-7 flex flex-col gap-5">
+          
+          <!-- Main Timer Instrument Card -->
+          <div class="instrument-card p-6 sm:p-8 flex flex-col items-center relative overflow-hidden">
+            
+            <!-- Top Row: Sliding Pill Mode Selector Chips -->
+            <div class="seg-nav-wrap mb-6" id="timerModeNavWrap">
+              <div id="timerModeIndicator" class="seg-nav-indicator"></div>
+              <button onclick="setTimerMode('pomodoro', 25)" id="modeBtn-pomodoro" class="seg-nav-btn active">
+                <span>Focus</span>
+                <span class="font-mono-num opacity-70 text-[11px]">25m</span>
+              </button>
+              <button onclick="setTimerMode('deep', 50)" id="modeBtn-deep" class="seg-nav-btn">
+                <span>Deep Flow</span>
+                <span class="font-mono-num opacity-70 text-[11px]">50m</span>
+              </button>
+              <button onclick="setTimerMode('short', 5)" id="modeBtn-short" class="seg-nav-btn">
+                <span>Break</span>
+                <span class="font-mono-num opacity-70 text-[11px]">05m</span>
+              </button>
+              <button onclick="setTimerMode('long', 15)" id="modeBtn-long" class="seg-nav-btn">
+                <span>Rest</span>
+                <span class="font-mono-num opacity-70 text-[11px]">15m</span>
+              </button>
+            </div>
+
+            <!-- Active Focus Target Pill (Task or Time Block Linked) -->
+            <div class="w-full max-w-md mb-4">
+              <div class="instrument-sub px-3.5 py-2 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="w-2 h-2 rounded-full bg-[var(--accent-electric)] shrink-0"></span>
+                  <span class="text-[11px] font-mono-num uppercase text-[var(--text-muted)] shrink-0">Target:</span>
+                  <span id="activeFocusTargetLabel" class="text-xs font-medium text-[var(--text-primary)] truncate">
+                    Unlinked Deep Work Session
+                  </span>
+                </div>
+                <button onclick="openTargetPickerModal()" class="tactile-btn text-[11px] font-mono-num text-[var(--accent-electric)] hover:underline shrink-0">
+                  Change
+                </button>
+              </div>
+            </div>
+
+            <!-- Precision SVG Ring & Tabular Countdown with Breathing Flow Aura -->
+            <div class="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center my-2">
+              <!-- Ambient Breathing Glow when Running -->
+              <div id="timerAuraGlow" class="timer-aura-glow absolute inset-4 rounded-full bg-[var(--accent-electric)]/20 blur-2xl"></div>
+
+              <svg class="w-full h-full relative z-10" viewBox="0 0 240 240">
+                <!-- Outer Subtle Tick Marks -->
+                <circle
+                  cx="120" cy="120" r="108"
+                  fill="none"
+                  stroke="var(--border-hairline)"
+                  stroke-width="1"
+                  stroke-dasharray="2 6"
+                />
+                <!-- Track Ring -->
+                <circle
+                  cx="120" cy="120" r="98"
+                  fill="none"
+                  stroke="var(--border-hairline)"
+                  stroke-width="3.5"
+                />
+                <!-- Active Progress Ring -->
+                <circle
+                  id="timerSvgCircle"
+                  class="timer-ring-progress"
+                  cx="120" cy="120" r="98"
+                  fill="none"
+                  stroke="var(--accent-electric)"
+                  stroke-width="3.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="615.75"
+                  stroke-dashoffset="0"
+                />
+              </svg>
+
+              <div class="absolute inset-0 flex flex-col items-center justify-center z-20">
+                <span id="timerStatusTag" class="text-[10px] font-mono-num uppercase tracking-widest text-[var(--text-muted)] mb-1">
+                  STANDBY
+                </span>
+                <div id="mainTimerDigits" class="text-5xl sm:text-6xl font-mono-num font-bold tracking-tight text-[var(--text-primary)]">
+                  25:00
+                </div>
+                <!-- Fine Minute Stepper -->
+                <div class="flex items-center gap-2 mt-3">
+                  <button onclick="stepTimerDuration(-5)" class="tactile-btn btn-ghost px-2 py-0.5 text-[11px] font-mono-num text-[var(--text-secondary)]">-5m</button>
+                  <button onclick="stepTimerDuration(5)" class="tactile-btn btn-ghost px-2 py-0.5 text-[11px] font-mono-num text-[var(--text-secondary)]">+5m</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Primary Transport Controls -->
+            <div class="flex items-center gap-3 w-full max-w-xs mt-4">
+              <button onclick="toggleTimer()" id="mainStartBtn" class="tactile-btn btn-primary flex-1 py-3 text-xs uppercase tracking-wider font-mono-num font-bold flex items-center justify-center gap-2">
+                <i id="mainStartIcon" class="ph-fill ph-play text-sm"></i>
+                <span id="mainStartLabel">Start Session</span>
+              </button>
+              <button onclick="resetTimer()" class="tactile-btn btn-ghost p-3 text-[var(--text-secondary)] hover:text-[var(--text-primary)]" title="Reset Timer (R)">
+                <i class="ph-bold ph-arrow-counter-clockwise text-sm"></i>
+              </button>
+              <button onclick="completeTimerEarly()" class="tactile-btn btn-ghost p-3 text-[var(--text-secondary)] hover:text-[var(--accent-emerald)]" title="Log Completed Session">
+                <i class="ph-bold ph-check text-sm"></i>
+              </button>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-center gap-4 mt-4 text-[11px] text-[var(--text-muted)] font-mono-num">
+              <span><kbd class="kbd-badge">Space</kbd> Start/Pause</span>
+              <span><kbd class="kbd-badge">R</kbd> Reset</span>
+              <span><kbd class="kbd-badge">M</kbd> Spotify Deck</span>
+              <span><kbd class="kbd-badge">N</kbd> Plan Block</span>
+            </div>
+          </div>
+
+          <!-- Dual-Mode Sonic Architecture Card (Spotify Controller + Procedural Web Audio Layer) -->
+          <div class="instrument-card p-5 flex flex-col gap-4">
+            <!-- Top Row: Spotify Quick Stream Selector + Open Persistent Player CTA -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pb-3.5 border-b border-[var(--border-hairline)]">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-[#1DB954]/15 border border-[#1DB954]/40 flex items-center justify-center text-[#1DB954]">
+                  <i class="ph-fill ph-spotify-logo text-lg"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold text-[var(--text-primary)]">Spotify Focus Stream</span>
+                    <span class="text-[10px] font-mono-num px-1.5 py-0.2 rounded bg-[#1DB954]/15 text-[#1DB954] font-semibold">PERSISTENT</span>
+                  </div>
+                  <p class="text-[11px] text-[var(--text-secondary)]">Continues playing seamlessly while browsing Calendar & Time Mgmt</p>
+                </div>
+              </div>
+
+              <button onclick="toggleSpotifyDrawer()" class="tactile-btn btn-spotify px-3.5 py-2 text-xs flex items-center gap-1.5">
+                <i class="ph-fill ph-sliders-horizontal text-xs"></i>
+                <span id="focusViewSpotifyBtnText">Open Spotify Player</span>
+              </button>
+            </div>
+
+            <!-- Curated High-Taste Focus Playlists Strip -->
+            <div class="flex flex-wrap items-center gap-1.5" id="inlineSpotifyPresets">
+              <!-- Populated by JS -->
+            </div>
+
+            <!-- Bottom Sub-Layer: Procedural Web Audio Acoustic Synth (Can layer underneath Spotify!) -->
+            <div class="instrument-sub p-3 flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-2">
+                <i class="ph-bold ph-waveform text-sm text-[var(--accent-cyan)]"></i>
+                <span class="text-xs font-medium text-[var(--text-primary)]">Acoustic Underlay</span>
+                <span id="synthStatusPill" class="text-[10px] font-mono-num px-1.5 py-0.2 rounded bg-[var(--bg-elevated)] text-[var(--text-muted)]">OFF</span>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button onclick="toggleSynthSound('brown')" id="synthBtn-brown" class="tactile-btn btn-ghost px-2.5 py-1 text-[11px] flex items-center gap-1">
+                  <i class="ph-bold ph-wind text-xs text-[var(--accent-amber)]"></i>
+                  <span>Brown</span>
+                </button>
+                <button onclick="toggleSynthSound('rain')" id="synthBtn-rain" class="tactile-btn btn-ghost px-2.5 py-1 text-[11px] flex items-center gap-1">
+                  <i class="ph-bold ph-cloud-rain text-xs text-[var(--accent-cyan)]"></i>
+                  <span>Rain</span>
+                </button>
+                <button onclick="toggleSynthSound('gamma')" id="synthBtn-gamma" class="tactile-btn btn-ghost px-2.5 py-1 text-[11px] flex items-center gap-1">
+                  <i class="ph-bold ph-planet text-xs text-[var(--accent-electric)]"></i>
+                  <span>40Hz</span>
+                </button>
+
+                <div class="flex items-center gap-1.5 pl-2 border-l border-[var(--border-hairline)]">
+                  <i class="ph ph-speaker-high text-xs text-[var(--text-muted)]"></i>
+                  <input
+                    type="range"
+                    min="0" max="100" value="35"
+                    oninput="setSynthVolume(this.value)"
+                    class="w-16 accent-indigo-500 cursor-pointer"
+                    title="Acoustic Underlay Volume"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right 5 Columns: Integrated Focus Tasks Queue + Today's Schedule Snapshot -->
+        <div class="lg:col-span-5 flex flex-col gap-5">
+          
+          <!-- Focus Tasks Queue Card -->
+          <div class="instrument-card p-5 flex flex-col">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h2 class="text-sm font-semibold text-[var(--text-primary)]">Focus Task Queue</h2>
+                <p class="text-[11px] text-[var(--text-secondary)]">Tasks for <span id="focusViewDateSub" class="font-mono-num text-[var(--text-primary)]">Today</span></p>
+              </div>
+              <div class="flex items-center gap-1 p-0.5 instrument-sub text-[11px]">
+                <button onclick="setTaskFilter('all')" id="filterBtn-all" class="px-2 py-1 rounded-md font-medium bg-[var(--bg-elevated)] text-[var(--text-primary)]">All</button>
+                <button onclick="setTaskFilter('active')" id="filterBtn-active" class="px-2 py-1 rounded-md font-medium text-[var(--text-secondary)]">Active</button>
+                <button onclick="setTaskFilter('done')" id="filterBtn-done" class="px-2 py-1 rounded-md font-medium text-[var(--text-secondary)]">Done</button>
+              </div>
+            </div>
+
+            <!-- Fast Task Input with Estimate -->
+            <form onsubmit="handleAddFocusTask(event)" class="flex gap-2 mb-3">
+              <input
+                type="text"
+                id="focusTaskInput"
+                placeholder="Add task & press Enter..."
+                required
+                class="input-instrument flex-1 text-xs"
+              />
+              <select id="focusTaskEstSelect" class="input-instrument text-xs font-mono-num w-20" title="Estimated Focus Duration">
+                <option value="25">25m</option>
+                <option value="50" selected>50m</option>
+                <option value="90">90m</option>
+              </select>
+              <button type="submit" class="tactile-btn btn-electric px-3 py-1.5 text-xs shrink-0">
+                <i class="ph-bold ph-plus"></i>
+              </button>
+            </form>
+
+            <!-- Tasks List -->
+            <div id="focusTasksContainer" class="space-y-2 max-h-[290px] overflow-y-auto pr-1">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Upcoming Scheduled Time Blocks Mini-Feed (Bridge to Calendar Feature) -->
+          <div class="instrument-card p-5">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <i class="ph-bold ph-calendar-check text-sm text-[var(--accent-electric)]"></i>
+                <h3 class="text-xs font-semibold uppercase tracking-wider font-mono-num text-[var(--text-secondary)]">
+                  Scheduled Blocks on This Day
+                </h3>
+              </div>
+              <button onclick="switchView('calendar', false)" class="text-[11px] font-medium text-[var(--accent-electric)] hover:underline flex items-center gap-1">
+                <span>Open Calendar</span>
+                <i class="ph-bold ph-arrow-right text-[10px]"></i>
+              </button>
+            </div>
+
+            <div id="focusMiniScheduleList" class="space-y-2 max-h-[175px] overflow-y-auto pr-1">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         VIEW 2: GOOGLE CALENDAR-STYLE PLANNER (MONTH GRID + DAY TIMELINE)
+         ======================================================================== -->
+    <section id="view-calendar" class="workspace-view flex-1 overflow-hidden px-4 sm:px-8 py-5 flex-col lg:flex-row gap-6">
+      
+      <!-- Left 62%: Google Calendar-Style Interactive Month Grid (Plan Any Specific Date) -->
+      <div class="flex-1 instrument-card flex flex-col overflow-hidden min-h-0">
+        
+        <!-- Calendar Header Bar -->
+        <div class="px-5 py-3.5 border-b border-[var(--border-hairline)] flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <h2 id="calMonthHeader" class="text-base font-bold text-[var(--text-primary)]">November 2026</h2>
+            <div class="flex items-center gap-1 instrument-sub p-0.5">
+              <button onclick="stepCalendarMonth(-1)" class="tactile-btn p-1.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-secondary)]">
+                <i class="ph-bold ph-caret-left text-xs"></i>
+              </button>
+              <button onclick="jumpToToday()" class="tactile-btn px-2.5 py-1 text-xs font-medium text-[var(--text-primary)]">
+                Today
+              </button>
+              <button onclick="stepCalendarMonth(1)" class="tactile-btn p-1.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-secondary)]">
+                <i class="ph-bold ph-caret-right text-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Legend + Quick Schedule CTA -->
+          <div class="flex items-center gap-3">
+            <div class="hidden xl:flex items-center gap-3 text-[11px] text-[var(--text-secondary)]">
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[var(--accent-electric)]"></span>Deep Work</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[var(--accent-cyan)]"></span>Study</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[var(--accent-amber)]"></span>Meeting</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[var(--accent-rose)]"></span>Milestone</span>
+            </div>
+            <button onclick="openBlockModal()" class="tactile-btn btn-electric px-3 py-1.5 text-xs flex items-center gap-1.5">
+              <i class="ph-bold ph-plus text-xs"></i>
+              <span>Schedule Block</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Days of Week Header -->
+        <div class="grid grid-cols-7 border-b border-[var(--border-hairline)] bg-[var(--bg-interactive)]/50 text-center py-2">
+          <div class="text-[10px] font-mono-num font-semibold text-[var(--text-muted)]">SUN</div>
+          <div class="text-[10px] font-mono-num font-semibold text-[var(--text-muted)]">MON</div>
+          <div class="text-[10px] font-mono-num font-semibold text-[var(--text-muted)]">TUE</div>
+          <div class="text-[10px] font-mono-num font-semibold text-[var(--text-muted)]">WED</div>
+          <div class="text-[10px] font-mono-num font-semibold text-[var(--text-muted)]">THU</div>
+          <div class="text-[10px] font-mono-num font-semibold text-[var(--text-muted)]">FRI</div>
+          <div class="text-[10px] font-mono-num font-semibold text-[var(--text-muted)]">SAT</div>
+        </div>
+
+        <!-- Interactive Month Grid Cells -->
+        <div id="calendarMonthGrid" class="flex-1 overflow-y-auto grid grid-cols-7 auto-rows-fr">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Right 38%: Selected Date Hourly Day Planner (06:00 - 23:00 Google Calendar Day Column) -->
+      <div class="w-full lg:w-[410px] xl:w-[440px] instrument-card flex flex-col overflow-hidden shrink-0">
+        
+        <!-- Selected Day Header -->
+        <div class="px-5 py-3.5 border-b border-[var(--border-hairline)] flex items-center justify-between gap-2">
+          <div>
+            <div class="flex items-center gap-2">
+              <span id="dayPlannerDateTitle" class="text-sm font-bold text-[var(--text-primary)]">Friday, Nov 13</span>
+              <span id="dayPlannerHoursBadge" class="text-[10px] font-mono-num px-2 py-0.5 rounded bg-[var(--accent-electric-soft)] text-[var(--accent-electric)] font-semibold">0.0h planned</span>
+            </div>
+            <p class="text-[11px] text-[var(--text-secondary)]">Click any hour slot to plan on this date</p>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <button onclick="scrollToTimelineNow()" class="tactile-btn btn-ghost px-2.5 py-1.5 text-[11px] font-mono-num flex items-center gap-1" title="Jump to Current Time">
+              <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-rose)]"></span>
+              <span>Now</span>
+            </button>
+            <button onclick="openMilestoneModal()" class="tactile-btn btn-ghost px-2.5 py-1.5 text-[11px] flex items-center gap-1" title="Add D-Day / Deadline on this date">
+              <i class="ph-bold ph-flag text-xs text-[var(--accent-rose)]"></i>
+              <span>D-Day</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Scrollable Hourly Day Canvas -->
+        <div id="dayTimelineViewport" class="flex-1 overflow-y-auto relative">
+          <div id="dayTimelineSurface" class="day-timeline-surface">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ========================================================================
+         VIEW 3: TIME MANAGEMENT (CAPACITY BUDGET, PLANNED VS ACTUAL, VELOCITY)
+         ======================================================================== -->
+    <section id="view-timemgmt" class="workspace-view flex-1 overflow-y-auto px-4 sm:px-8 py-6">
+      <div class="max-w-6xl w-full mx-auto flex flex-col gap-6">
+
+        <!-- Top Row: 4 High-Precision Telemetry KPI Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="instrument-card p-5">
+            <div class="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-2">
+              <span>Scheduled Time (Day)</span>
+              <i class="ph-bold ph-calendar-plus text-sm text-[var(--accent-electric)]"></i>
+            </div>
+            <div id="tmMetricPlanned" class="text-2xl font-mono-num font-bold text-[var(--text-primary)]">0.0h</div>
+            <div id="tmMetricPlannedSub" class="text-[11px] font-mono-num text-[var(--text-muted)] mt-1">of 16.0h waking budget</div>
+          </div>
+
+          <div class="instrument-card p-5">
+            <div class="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-2">
+              <span>Completed Focus</span>
+              <i class="ph-bold ph-check-circle text-sm text-[var(--accent-emerald)]"></i>
+            </div>
+            <div id="tmMetricActual" class="text-2xl font-mono-num font-bold text-[var(--accent-emerald)]">0.0h</div>
+            <div id="tmMetricActualSub" class="text-[11px] font-mono-num text-[var(--text-muted)] mt-1">0 focus sessions logged</div>
+          </div>
+
+          <div class="instrument-card p-5">
+            <div class="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-2">
+              <span>Task Queue Budget</span>
+              <i class="ph-bold ph-list-checks text-sm text-[var(--accent-cyan)]"></i>
+            </div>
+            <div id="tmMetricTaskEst" class="text-2xl font-mono-num font-bold text-[var(--accent-cyan)]">0.0h</div>
+            <div id="tmMetricTaskSub" class="text-[11px] font-mono-num text-[var(--text-muted)] mt-1">uncompleted task estimates</div>
+          </div>
+
+          <div class="instrument-card p-5">
+            <div class="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-2">
+              <span>Unallocated Buffer</span>
+              <i class="ph-bold ph-shield-check text-sm text-[var(--accent-amber)]"></i>
+            </div>
+            <div id="tmMetricBuffer" class="text-2xl font-mono-num font-bold text-[var(--text-primary)]">16.0h</div>
+            <div id="tmMetricBufferSub" class="text-[11px] font-mono-num text-[var(--text-muted)] mt-1">free cognitive margin</div>
+          </div>
+        </div>
+
+        <!-- Middle Row: Awake-Hours Capacity Visualizer + Category Allocation Reconciler -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Left 7 Cols: 16-Hour Waking Capacity & Auto-Time-Blocker -->
+          <div class="lg:col-span-7 instrument-card p-6 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <div>
+                  <h3 class="text-sm font-bold text-[var(--text-primary)]">Daily Time Capacity & Load Balance</h3>
+                  <p class="text-xs text-[var(--text-secondary)]">Visual breakdown of your 16 waking hours (07:00 – 23:00) for <span id="tmDateLabel" class="font-mono-num text-[var(--text-primary)]">Selected Date</span></p>
+                </div>
+                <span id="tmLoadStatusBadge" class="text-[11px] font-mono-num font-semibold px-2.5 py-1 rounded-md bg-[var(--accent-emerald-soft)] text-[var(--accent-emerald)]">
+                  OPTIMAL LOAD
+                </span>
+              </div>
+
+              <!-- Multi-Segment Capacity Bar -->
+              <div class="w-full h-4 rounded-lg bg-[var(--bg-interactive)] border border-[var(--border-hairline)] overflow-hidden flex gap-0.5 p-0.5 my-5">
+                <div id="tmBarDeep" class="h-full bg-[var(--accent-electric)] rounded-l transition-all duration-300" style="width: 0%" title="Deep Work"></div>
+                <div id="tmBarStudy" class="h-full bg-[var(--accent-cyan)] transition-all duration-300" style="width: 0%" title="Study & Research"></div>
+                <div id="tmBarMeeting" class="h-full bg-[var(--accent-amber)] transition-all duration-300" style="width: 0%" title="Meetings & Sync"></div>
+                <div id="tmBarRest" class="h-full bg-[var(--accent-emerald)] rounded-r transition-all duration-300" style="width: 0%" title="Rest & Recharge"></div>
+              </div>
+
+              <!-- Category Breakdown Rows -->
+              <div id="tmCategoryBreakdown" class="space-y-3 mt-4">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+
+            <!-- Smart Time-Management Action Footer -->
+            <div class="mt-6 pt-4 border-t border-[var(--border-hairline)] flex flex-wrap items-center justify-between gap-3">
+              <div class="text-xs text-[var(--text-secondary)]">
+                Have unscheduled tasks in your queue? Auto-assign them to free slots on this day.
+              </div>
+              <button onclick="autoScheduleUnplannedTasks()" class="tactile-btn btn-electric px-3.5 py-2 text-xs flex items-center gap-2">
+                <i class="ph-bold ph-magic-wand text-xs"></i>
+                <span>Auto-Schedule Open Tasks</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right 5 Cols: 7-Day Time Distribution & Upcoming D-Day Milestones -->
+          <div class="lg:col-span-5 flex flex-col gap-6">
+            
+            <!-- 7-Day Time Horizon Bar Chart -->
+            <div class="instrument-card p-6">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="text-sm font-bold text-[var(--text-primary)]">7-Day Time Horizon</h3>
+                  <p class="text-xs text-[var(--text-secondary)]">Scheduled hours across the current week</p>
+                </div>
+                <span class="text-[11px] font-mono-num text-[var(--text-muted)]">Click bar to inspect</span>
+              </div>
+
+              <div id="tmWeeklyBars" class="grid grid-cols-7 gap-2 items-end h-36 pt-4 px-1">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+
+            <!-- D-Day Deadlines & Milestones Manager -->
+            <div class="instrument-card p-5 flex-1">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <i class="ph-bold ph-flag-banner text-sm text-[var(--accent-rose)]"></i>
+                  <h3 class="text-xs font-bold uppercase tracking-wider font-mono-num text-[var(--text-secondary)]">D-Day Countdowns</h3>
+                </div>
+                <button onclick="openMilestoneModal()" class="tactile-btn text-xs text-[var(--accent-electric)] hover:underline font-medium">
+                  + Add D-Day
+                </button>
+              </div>
+              <div id="tmMilestonesList" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==========================================================================
+       MODAL 1: SCHEDULE / EDIT TIME BLOCK (GOOGLE CALENDAR EVENT DIALOG)
+       ========================================================================== -->
+  <div id="blockModalBackdrop" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+    <div class="modal-dialog instrument-card w-full max-w-md p-6" style="box-shadow: var(--elevation-modal);">
+      <div class="flex items-center justify-between pb-3 border-b border-[var(--border-hairline)]">
+        <div class="flex items-center gap-2">
+          <i class="ph-bold ph-calendar-plus text-base text-[var(--accent-electric)]"></i>
+          <h3 id="blockModalHeading" class="text-sm font-bold">Schedule Time Block</h3>
+        </div>
+        <button onclick="closeBlockModal()" class="tactile-btn text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1">
+          <i class="ph ph-x text-base"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleSaveBlock(event)" class="mt-4 space-y-4">
+        <input type="hidden" id="blockEditId" value="" />
+
+        <div>
+          <label class="block text-[11px] font-mono-num uppercase text-[var(--text-secondary)] mb-1">Block Title</label>
+          <input
+            type="text"
+            id="blockTitleInput"
+            placeholder="e.g., Systems Architecture Deep Work"
+            required
+            class="input-instrument w-full"
+          />
+        </div>
+
+        <div class="grid grid-cols-3 gap-2.5">
+          <div>
+            <label class="block text-[11px] font-mono-num uppercase text-[var(--text-secondary)] mb-1">Date</label>
+            <input type="date" id="blockDateInput" required class="input-instrument w-full font-mono-num text-xs" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-mono-num uppercase text-[var(--text-secondary)] mb-1">Start</label>
+            <select id="blockStartSelect" onchange="validateBlockOverlap()" class="input-instrument w-full font-mono-num text-xs"></select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-mono-num uppercase text-[var(--text-secondary)] mb-1">End</label>
+            <select id="blockEndSelect" onchange="validateBlockOverlap()" class="input-instrument w-full font-mono-num text-xs"></select>
+          </div>
+        </div>
+
+        <!-- Overlap Warning -->
+        <div id="blockConflictNotice" class="hidden p-2.5 rounded-lg bg-[var(--accent-amber-soft)] border border-[var(--accent-amber)]/40 text-[11px] text-[var(--accent-amber)] items-center gap-2">
+          <i class="ph-bold ph-warning text-sm shrink-0"></i>
+          <span>Overlaps with another scheduled block on this date.</span>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-mono-num uppercase text-[var(--text-secondary)] mb-1.5">Allocation Category</label>
+          <div class="grid grid-cols-4 gap-2 text-xs">
+            <label class="cursor-pointer">
+              <input type="radio" name="blockCatRadio" value="deep" checked class="peer sr-only" />
+              <div class="p-2 rounded-lg border border-[var(--border-hairline)] peer-checked:border-[var(--accent-electric)] peer-checked:bg-[var(--accent-electric-soft)] text-center font-medium">
+                Deep Work
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="blockCatRadio" value="study" class="peer sr-only" />
+              <div class="p-2 rounded-lg border border-[var(--border-hairline)] peer-checked:border-[var(--accent-cyan)] peer-checked:bg-[var(--accent-cyan-soft)] text-center font-medium">
+                Study
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="blockCatRadio" value="meeting" class="peer sr-only" />
+              <div class="p-2 rounded-lg border border-[var(--border-hairline)] peer-checked:border-[var(--accent-amber)] peer-checked:bg-[var(--accent-amber-soft)] text-center font-medium">
+                Meeting
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="blockCatRadio" value="rest" class="peer sr-only" />
+              <div class="p-2 rounded-lg border border-[var(--border-hairline)] peer-checked:border-[var(--accent-emerald)] peer-checked:bg-[var(--accent-emerald-soft)] text-center font-medium">
+                Rest
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-mono-num uppercase text-[var(--text-secondary)] mb-1">Notes / Deliverable</label>
+          <input
+            type="text"
+            id="blockNotesInput"
+            placeholder="Optional session objective..."
+            class="input-instrument w-full text-xs"
+          />
+        </div>
+
+        <div class="pt-3 border-t border-[var(--border-hairline)] flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <button type="button" id="blockDeleteBtn" onclick="handleDeleteBlock()" class="hidden tactile-btn px-3 py-2 rounded-lg text-xs font-semibold bg-[var(--accent-rose-soft)] text-[var(--accent-rose)]">
+              Delete
+            </button>
+            <button type="button" id="blockFocusLaunchBtn" onclick="launchModalBlockIntoTimer()" class="hidden tactile-btn btn-ghost px-3 py-2 text-xs flex items-center gap-1.5 text-[var(--accent-electric)]">
+              <i class="ph-fill ph-play text-xs"></i>
+              <span>Focus Now</span>
+            </button>
+          </div>
+          <div class="flex items-center gap-2 ml-auto">
+            <button type="button" onclick="closeBlockModal()" class="tactile-btn btn-ghost px-3.5 py-2 text-xs">Cancel</button>
+            <button type="submit" class="tactile-btn btn-primary px-4 py-2 text-xs">Save Block</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 2: ADD D-DAY MILESTONE / DEADLINE
+       ========================================================================== -->
+  <div id="milestoneModalBackdrop" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+    <div class="modal-dialog instrument-card w-full max-w-sm p-6" style="box-shadow: var(--elevation-modal);">
+      <div class="flex items-center justify-between pb-3 border-b border-[var(--border-hairline)]">
+        <div class="flex items-center gap-2">
+          <i class="ph-bold ph-flag-banner text-base text-[var(--accent-rose)]"></i>
+          <h3 class="text-sm font-bold">Add D-Day Milestone</h3>
+        </div>
+        <button onclick="closeMilestoneModal()" class="tactile-btn text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1">
+          <i class="ph ph-x text-base"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleSaveMilestone(event)" class="mt-4 space-y-4">
+        <div>
+          <label class="block text-[11px] font-mono-num uppercase text-[var(--text-secondary)] mb-1">Milestone Title</label>
+          <input type="text" id="msTitleInput" placeholder="e.g., v3 Product Launch, Final Exam" required class="input-instrument w-full" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-mono-num uppercase text-[var(--text-secondary)] mb-1">Target Date</label>
+          <input type="date" id="msDateInput" required class="input-instrument w-full font-mono-num text-xs" />
+        </div>
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeMilestoneModal()" class="tactile-btn btn-ghost px-3.5 py-2 text-xs">Cancel</button>
+          <button type="submit" class="tactile-btn btn-primary px-4 py-2 text-xs">Save Milestone</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 3: SELECT ACTIVE FOCUS TARGET
+       ========================================================================== -->
+  <div id="targetModalBackdrop" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+    <div class="modal-dialog instrument-card w-full max-w-md p-6" style="box-shadow: var(--elevation-modal);">
+      <div class="flex items-center justify-between pb-3 border-b border-[var(--border-hairline)]">
+        <h3 class="text-sm font-bold">Select Active Focus Target</h3>
+        <button onclick="closeTargetPickerModal()" class="tactile-btn text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1">
+          <i class="ph ph-x text-base"></i>
+        </button>
+      </div>
+      <div id="targetPickerList" class="mt-4 space-y-2 max-h-72 overflow-y-auto pr-1">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       PERSISTENT FLOATING SPOTIFY SONIC DECK (STAYS MOUNTED ACROSS ALL TABS)
+       ========================================================================== -->
+  <aside id="spotifyFloatingDeck" class="spotify-floating-deck instrument-card p-4 border border-[var(--border-strong)]" style="box-shadow: var(--elevation-modal);">
+    <!-- Deck Header -->
+    <div class="flex items-center justify-between pb-3 mb-3 border-b border-[var(--border-hairline)]">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-6 h-6 rounded-md bg-[#1DB954]/20 text-[#1DB954] flex items-center justify-center shrink-0">
+          <i class="ph-fill ph-spotify-logo text-sm"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5">
+            <h4 class="text-xs font-bold text-[var(--text-primary)] truncate">Spotify Sonic Deck</h4>
+            <span class="text-[9px] font-mono-num px-1.5 py-0.2 rounded bg-[#1DB954]/15 text-[#1DB954]">LIVE EMBED</span>
+          </div>
+          <p id="spotifyActiveDeckTitle" class="text-[10px] text-[var(--text-secondary)] truncate">Deep Flow Electronic</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1">
+        <button onclick="toggleSpotifyDrawer()" class="tactile-btn btn-ghost px-2 py-1 text-[10px] font-mono-num text-[var(--text-secondary)] hover:text-[var(--text-primary)]" title="Minimize Drawer (Playback Continues)">
+          Hide <span class="opacity-60">M</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Curated Preset Chips inside Drawer -->
+    <div id="drawerSpotifyPresets" class="flex flex-wrap gap-1.5 mb-3">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- Real Persistent Spotify Embed Iframe -->
+    <div class="rounded-xl overflow-hidden bg-black/40 border border-[var(--border-hairline)] mb-3">
+      <iframe
+        id="spotifyEmbedIframe"
+        style="border-radius:12px"
+        src="https://open.spotify.com/embed/playlist/37i9dQZF1DWZeKCadgRdKQ?utm_source=generator&theme=0"
+        width="100%"
+        height="152"
+        frameBorder="0"
+        allowfullscreen=""
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        loading="lazy">
+      </iframe>
+    </div>
+
+    <!-- Custom Spotify Playlist / Track / Album URL or URI Loader -->
+    <form onsubmit="handleCustomSpotifySubmit(event)" class="flex gap-1.5">
+      <input
+        type="text"
+        id="customSpotifyUrlInput"
+        placeholder="Paste Spotify link or URI (playlist/track/album)..."
+        class="input-instrument flex-1 text-[11px] py-1.5 px-2.5"
+      />
+      <button type="submit" class="tactile-btn btn-spotify px-3 py-1.5 text-[11px] shrink-0">
+        Load
+      </button>
+    </form>
+  </aside>
+
+  <!-- ==========================================================================
+       INSTANT COMMAND PALETTE (⌘K / Ctrl+K — 0ms Keyboard Open per Emil Skill)
+       ========================================================================== -->
+  <div id="cmdPaletteBackdrop" onclick="if(event.target === this) closeCommandPalette()" class="cmd-palette-backdrop fixed inset-0 z-50 items-start justify-center pt-20 p-4 bg-black/70 backdrop-blur-xs">
+    <div class="instrument-card w-full max-w-lg overflow-hidden" style="box-shadow: var(--elevation-modal);">
+      <div class="p-3.5 border-b border-[var(--border-hairline)] flex items-center gap-3">
+        <i class="ph-bold ph-magnifying-glass text-sm text-[var(--accent-electric)]"></i>
+        <input
+          type="text"
+          id="cmdSearchInput"
+          oninput="renderCommandList(this.value)"
+          placeholder="Type a command or jump to view..."
+          class="bg-transparent border-none outline-none text-xs text-[var(--text-primary)] flex-1"
+        />
+        <span class="kbd-badge">ESC</span>
+      </div>
+      <div id="cmdResultsList" class="p-2 max-h-72 overflow-y-auto space-y-1">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       SONNER-STYLE TOAST NOTIFICATION
+       ========================================================================== -->
+  <div id="sonnerToast" class="sonner-toast fixed bottom-5 right-5 z-50">
+    <div class="instrument-card px-4 py-2.5 flex items-center gap-3 border border-[var(--border-strong)]" style="box-shadow: var(--elevation-modal);">
+      <span class="w-2 h-2 rounded-full bg-[var(--accent-emerald)]"></span>
+      <span id="sonnerToastText" class="text-xs font-medium text-[var(--text-primary)]">Action saved</span>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       APPLICATION LOGIC
+       ========================================================================== -->
+  <script>
+    /**************************************************************************
+     * 1. CORE STATE & DATE HELPERS (DEFAULT ANCHOR: NOV 13, 2026)
+     **************************************************************************/
+    const STORAGE_KEY = 'focus_flow_instrument_v5';
+    const START_HOUR = 6;  // 06:00 AM
+    const END_HOUR = 23;   // 11:00 PM
+    const HOUR_HEIGHT = 60; // 60px per hour
+
+    const DEFAULT_SPOTIFY_STREAMS = [
+      { id: 'sp-lofi', name: 'Deep Flow Electronic', embedUrl: 'https://open.spotify.com/embed/playlist/37i9dQZF1DWZeKCadgRdKQ?utm_source=generator&theme=0' },
+      { id: 'sp-brain', name: 'Brain Food Coding', embedUrl: 'https://open.spotify.com/embed/playlist/37i9dQZF1DWXLeA8Omikj7?utm_source=generator&theme=0' },
+      { id: 'sp-classical', name: 'Dark Academia', embedUrl: 'https://open.spotify.com/embed/playlist/37i9dQZF1DWVFeEut75IAL?utm_source=generator&theme=0' },
+      { id: 'sp-phonk', name: 'Phonk Drive', embedUrl: 'https://open.spotify.com/embed/playlist/37i9dQZF1DWWY64wDtewQt?utm_source=generator&theme=0' },
+      { id: 'sp-synth', name: 'Synthwave Night', embedUrl: 'https://open.spotify.com/embed/playlist/37i9dQZF1DXdLEN7aqioXM?utm_source=generator&theme=0' }
+    ];
+
+    function toDateKey(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function fromDateKey(key) {
+      const [y, m, d] = key.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    const todayObj = new Date();
+    const todayKey = toDateKey(todayObj);
+
+    let state = {
+      theme: 'dark',
+      activeView: 'focus', // 'focus' | 'calendar' | 'timemgmt'
+      selectedDate: todayKey,
+      calMonth: todayObj.getMonth(),
+      calYear: todayObj.getFullYear(),
+      taskFilter: 'all',
+      blocksByDate: {},
+      tasksByDate: {},
+      milestones: [],
+      focusStatsByDate: {}, // { 'YYYY-MM-DD': { sessions: 0, minutes: 0 } }
+      spotify: {
+        activeId: 'sp-lofi',
+        drawerOpen: false,
+        customStreams: []
+      }
+    };
+
+    let timer = {
+      mode: 'pomodoro',
+      totalSeconds: 25 * 60,
+      remainingSeconds: 25 * 60,
+      isRunning: false,
+      intervalId: null,
+      targetLabel: 'Unlinked Deep Work Session',
+      targetType: null,
+      targetId: null
+    };
+
+    let synth = {
+      ctx: null,
+      activeType: null,
+      gainNode: null,
+      nodes: [],
+      volume: 0.35
+    };
+
+    /**************************************************************************
+     * 2. INITIALIZATION & REALISTIC SEED DATA
+     **************************************************************************/
+    function initApp() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          state = {
+            ...state,
+            ...parsed,
+            selectedDate: todayKey,
+            spotify: {
+              ...state.spotify,
+              ...(parsed.spotify || {}),
+              drawerOpen: false
+            }
+          };
+          state.calMonth = todayObj.getMonth();
+          state.calYear = todayObj.getFullYear();
+        } else {
+          seedDefaultWorkspace();
+        }
+      } catch (e) {
+        seedDefaultWorkspace();
+      }
+
+      applyTheme();
+      populateBlockTimeSelects();
+      initSpotifyDeck();
+      initMagneticCardSpotlight();
+      renderAll();
+      updateTimerUI();
+
+      requestAnimationFrame(() => {
+        updateSegmentedIndicator(false);
+        updateTimerModeIndicator(false);
+      });
+
+      setInterval(() => {
+        if (state.selectedDate === todayKey && state.activeView === 'calendar') {
+          renderDayTimeline();
+        }
+      }, 30000);
+    }
+
+    // Cursor-Tracked Specular Border & Surface Spotlight (Emil Kowalski / Linear Polish)
+    function initMagneticCardSpotlight() {
+      document.addEventListener('mousemove', (e) => {
+        const cards = document.querySelectorAll('.instrument-card');
+        cards.forEach(card => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          card.style.setProperty('--mouse-x', `${x}px`);
+          card.style.setProperty('--mouse-y', `${y}px`);
+        });
+      }, { passive: true });
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {}
+    }
+
+    function seedDefaultWorkspace() {
+      const d1 = new Date(todayObj); d1.setDate(d1.getDate() + 1);
+      const d2 = new Date(todayObj); d2.setDate(d2.getDate() + 2);
+      const d4 = new Date(todayObj); d4.setDate(d4.getDate() + 4);
+      const dm1 = new Date(todayObj); dm1.setDate(dm1.getDate() - 1);
+
+      const k1 = toDateKey(d1);
+      const k2 = toDateKey(d2);
+      const k4 = toDateKey(d4);
+      const km1 = toDateKey(dm1);
+
+      state.blocksByDate = {
+        [todayKey]: [
+          { id: 'b-1', title: 'Morning Triage & Architecture Spec', startMin: 9 * 60, endMin: 10 * 60 + 30, category: 'deep', notes: 'Define core data structures' },
+          { id: 'b-2', title: 'Deep Work: Calendar & Timeline Engine', startMin: 11 * 60, endMin: 13 * 60, category: 'deep', notes: 'Zero notifications allowed' },
+          { id: 'b-3', title: 'Midday Recharge & Walk', startMin: 13 * 60, endMin: 14 * 60, category: 'rest', notes: 'Step away from screens' },
+          { id: 'b-4', title: 'Algorithm & Systems Literature Study', startMin: 14 * 60 + 30, endMin: 16 * 60, category: 'study', notes: 'Distributed consensus notes' },
+          { id: 'b-5', title: 'Product Design Telemetry Sync', startMin: 16 * 60 + 30, endMin: 17 * 60 + 30, category: 'meeting', notes: 'Review weekly velocity' }
+        ],
+        [k1]: [
+          { id: 'b-6', title: 'Deep Work: Performance Profiling', startMin: 9 * 60 + 30, endMin: 11 * 60 + 30, category: 'deep', notes: '60fps compositor audit' },
+          { id: 'b-7', title: 'Research Synthesis Block', startMin: 14 * 60, endMin: 15 * 60 + 30, category: 'study', notes: 'Draft summary memo' }
+        ],
+        [k2]: [
+          { id: 'b-8', title: 'Sprint Deliverable Review', startMin: 10 * 60, endMin: 11 * 60 + 30, category: 'meeting', notes: 'Demo interactive calendar' }
+        ],
+        [km1]: [
+          { id: 'b-9', title: 'Core State Persistence Layer', startMin: 10 * 60, endMin: 12 * 60 + 30, category: 'deep', notes: 'Completed on schedule' }
+        ]
+      };
+
+      state.tasksByDate = {
+        [todayKey]: [
+          { id: 't-1', title: 'Ship Google Calendar month & day planner view', estMins: 50, completed: false },
+          { id: 't-2', title: 'Verify 16h waking capacity bar in Time Management', estMins: 25, completed: false },
+          { id: 't-3', title: 'Audit tabular-nums and 1px specular borders', estMins: 25, completed: true },
+          { id: 't-4', title: 'Prepare notes for 4:30 PM telemetry sync', estMins: 50, completed: false }
+        ],
+        [k1]: [
+          { id: 't-5', title: 'Run lighthouse & memory benchmark suite', estMins: 50, completed: false }
+        ]
+      };
+
+      state.milestones = [
+        { id: 'm-1', title: 'Focus Flow Instrument Release', dateKey: todayKey },
+        { id: 'm-2', title: 'Systems Engineering Exam', dateKey: k4 }
+      ];
+
+      state.focusStatsByDate = {
+        [todayKey]: { sessions: 2, minutes: 75 },
+        [km1]: { sessions: 4, minutes: 150 }
+      };
+
+      timer.targetLabel = 'Ship Google Calendar month & day planner view';
+      timer.targetType = 'task';
+      timer.targetId = 't-1';
+
+      saveState();
+    }
+
+    /**************************************************************************
+     * 3. NAVIGATION & EMIL KOWALSKI MOTION DISCIPLINE
+     **************************************************************************/
+    function switchView(viewName, isKeyboardTriggered = false) {
+      state.activeView = viewName;
+      ['focus', 'calendar', 'timemgmt'].forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        const btn = document.getElementById(`navBtn-${v}`);
+        if (v === viewName) {
+          el.classList.add('active');
+          if (!isKeyboardTriggered) {
+            el.classList.remove('animate-enter');
+            void el.offsetWidth;
+            el.classList.add('animate-enter');
+          } else {
+            el.classList.remove('animate-enter');
+          }
+          btn.classList.add('active');
+        } else {
+          el.classList.remove('active', 'animate-enter');
+          btn.classList.remove('active');
+        }
+      });
+
+      updateSegmentedIndicator(isKeyboardTriggered);
+      if (viewName === 'focus') {
+        requestAnimationFrame(() => updateTimerModeIndicator(true));
+      }
+      saveState();
+      renderAll();
+
+      if (viewName === 'calendar') {
+        setTimeout(() => scrollToTimelineNow(), 60);
+      }
+    }
+
+    function updateSegmentedIndicator(instant = false) {
+      const activeBtn = document.getElementById(`navBtn-${state.activeView}`);
+      const indicator = document.getElementById('segNavIndicator');
+      if (!activeBtn || !indicator) return;
+
+      if (instant) {
+        indicator.classList.add('instant-snap');
+      } else {
+        indicator.classList.remove('instant-snap');
+      }
+
+      indicator.style.width = `${activeBtn.offsetWidth}px`;
+      indicator.style.transform = `translateX(${activeBtn.offsetLeft - 3}px)`;
+
+      if (instant) {
+        requestAnimationFrame(() => indicator.classList.remove('instant-snap'));
+      }
+    }
+
+    function updateTimerModeIndicator(instant = false) {
+      const activeBtn = document.getElementById(`modeBtn-${timer.mode}`);
+      const indicator = document.getElementById('timerModeIndicator');
+      if (!activeBtn || !indicator) return;
+
+      if (instant) {
+        indicator.classList.add('instant-snap');
+      } else {
+        indicator.classList.remove('instant-snap');
+      }
+
+      indicator.style.width = `${activeBtn.offsetWidth}px`;
+      indicator.style.transform = `translateX(${activeBtn.offsetLeft - 3}px)`;
+
+      if (instant) {
+        requestAnimationFrame(() => indicator.classList.remove('instant-snap'));
+      }
+    }
+
+    window.addEventListener('resize', () => {
+      updateSegmentedIndicator(true);
+      updateTimerModeIndicator(true);
+    });
+
+    // Global Keyboard Shortcuts (Instant 0ms response for high-frequency actions)
+    window.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        openCommandPalette();
+        return;
+      }
+      if (e.key === 'Escape') {
+        closeCommandPalette();
+        closeBlockModal();
+        closeMilestoneModal();
+        closeTargetPickerModal();
+        if (state.spotify.drawerOpen) toggleSpotifyDrawer(false);
+        return;
+      }
+
+      const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+      if (e.key === '1') switchView('focus', true);
+      else if (e.key === '2') switchView('calendar', true);
+      else if (e.key === '3') switchView('timemgmt', true);
+      else if (e.code === 'Space') {
+        e.preventDefault();
+        toggleTimer();
+      } else if (e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        resetTimer();
+      } else if (e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        toggleSpotifyDrawer();
+      } else if (e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        openBlockModal();
+      }
+    });
+
+    /**************************************************************************
+     * 3B. SPOTIFY SONIC DECK ENGINE (PERSISTENT EMBED + URL/URI PARSER)
+     **************************************************************************/
+    function getAllSpotifyStreams() {
+      return [...DEFAULT_SPOTIFY_STREAMS, ...(state.spotify.customStreams || [])];
+    }
+
+    function initSpotifyDeck() {
+      const all = getAllSpotifyStreams();
+      const current = all.find(s => s.id === state.spotify.activeId) || all[0];
+      state.spotify.activeId = current.id;
+
+      const iframe = document.getElementById('spotifyEmbedIframe');
+      if (iframe && iframe.src !== current.embedUrl) {
+        iframe.src = current.embedUrl;
+      }
+      renderSpotifyPresetsUI();
+    }
+
+    function selectSpotifyStream(streamId, openDrawer = true) {
+      const all = getAllSpotifyStreams();
+      const target = all.find(s => s.id === streamId);
+      if (!target) return;
+
+      state.spotify.activeId = target.id;
+      const iframe = document.getElementById('spotifyEmbedIframe');
+      if (iframe && iframe.src !== target.embedUrl) {
+        iframe.src = target.embedUrl;
+      }
+
+      saveState();
+      renderSpotifyPresetsUI();
+      if (openDrawer && !state.spotify.drawerOpen) {
+        toggleSpotifyDrawer(true);
+      }
+      showToast(`Loaded Spotify: ${target.name}`);
+    }
+
+    function toggleSpotifyDrawer(forceState = null) {
+      state.spotify.drawerOpen = typeof forceState === 'boolean' ? forceState : !state.spotify.drawerOpen;
+      const deck = document.getElementById('spotifyFloatingDeck');
+      const headerBtn = document.getElementById('headerSpotifyBtn');
+      const focusBtnText = document.getElementById('focusViewSpotifyBtnText');
+
+      if (state.spotify.drawerOpen) {
+        deck.classList.add('open');
+        headerBtn.classList.add('border-[#1DB954]', 'bg-[#1DB954]/10');
+        if (focusBtnText) focusBtnText.textContent = 'Hide Spotify Player';
+      } else {
+        deck.classList.remove('open');
+        headerBtn.classList.remove('border-[#1DB954]', 'bg-[#1DB954]/10');
+        if (focusBtnText) focusBtnText.textContent = 'Open Spotify Player';
+      }
+    }
+
+    function parseSpotifyInputToEmbed(rawInput) {
+      const input = rawInput.trim();
+      if (!input) return null;
+
+      // Support spotify:playlist:ID or spotify:track:ID or spotify:album:ID
+      const uriMatch = input.match(/^spotify:(playlist|track|album|episode|show):([a-zA-Z0-9]+)$/i);
+      if (uriMatch) {
+        const type = uriMatch[1].toLowerCase();
+        const id = uriMatch[2];
+        return {
+          type,
+          id,
+          embedUrl: `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`
+        };
+      }
+
+      // Support https://open.spotify.com/(playlist|track|album)/ID
+      const urlMatch = input.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(?:embed\/)?(playlist|track|album|episode|show)\/([a-zA-Z0-9]+)/i);
+      if (urlMatch) {
+        const type = urlMatch[1].toLowerCase();
+        const id = urlMatch[2];
+        return {
+          type,
+          id,
+          embedUrl: `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`
+        };
+      }
+
+      return null;
+    }
+
+    function handleCustomSpotifySubmit(e) {
+      e.preventDefault();
+      const inputEl = document.getElementById('customSpotifyUrlInput');
+      const parsed = parseSpotifyInputToEmbed(inputEl.value);
+
+      if (!parsed) {
+        showToast('Paste a valid Spotify Playlist, Track, or Album link');
+        return;
+      }
+
+      if (!state.spotify.customStreams) state.spotify.customStreams = [];
+      const customCount = state.spotify.customStreams.length + 1;
+      const newStream = {
+        id: `sp-custom-${Date.now()}`,
+        name: `Custom ${parsed.type.charAt(0).toUpperCase() + parsed.type.slice(1)} #${customCount}`,
+        embedUrl: parsed.embedUrl,
+        isCustom: true
+      };
+
+      state.spotify.customStreams.push(newStream);
+      inputEl.value = '';
+      selectSpotifyStream(newStream.id, true);
+    }
+
+    function removeCustomSpotifyStream(streamId) {
+      state.spotify.customStreams = (state.spotify.customStreams || []).filter(s => s.id !== streamId);
+      if (state.spotify.activeId === streamId) {
+        selectSpotifyStream(DEFAULT_SPOTIFY_STREAMS[0].id, false);
+      } else {
+        saveState();
+        renderSpotifyPresetsUI();
+      }
+    }
+
+    function renderSpotifyPresetsUI() {
+      const all = getAllSpotifyStreams();
+      const current = all.find(s => s.id === state.spotify.activeId) || all[0];
+
+      const headerLabel = document.getElementById('headerSpotifyLabel');
+      const deckTitle = document.getElementById('spotifyActiveDeckTitle');
+      if (headerLabel && current) headerLabel.textContent = current.name;
+      if (deckTitle && current) deckTitle.textContent = current.name;
+
+      ['inlineSpotifyPresets', 'drawerSpotifyPresets'].forEach(containerId => {
+        const wrap = document.getElementById(containerId);
+        if (!wrap) return;
+        wrap.innerHTML = '';
+
+        all.forEach(s => {
+          const isActive = s.id === state.spotify.activeId;
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = `tactile-btn px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1.5 ${
+            isActive
+              ? 'bg-[#1DB954]/20 border border-[#1DB954] text-[var(--text-primary)] font-semibold'
+              : 'btn-ghost text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`;
+          chip.onclick = () => selectSpotifyStream(s.id, true);
+
+          chip.innerHTML = `
+            <i class="ph-fill ${isActive ? 'ph-play-circle text-[#1DB954]' : 'ph-music-notes text-[var(--text-muted)]'} text-xs"></i>
+            <span>${escapeHtml(s.name)}</span>
+            ${s.isCustom ? `<span onclick="event.stopPropagation(); removeCustomSpotifyStream('${s.id}')" class="ml-0.5 opacity-60 hover:opacity-100">×</span>` : ''}
+          `;
+          wrap.appendChild(chip);
+        });
+      });
+    }
+
+    /**************************************************************************
+     * 5. VIEW 1: FOCUS FLOW (PRECISION TIMER + TASK QUEUE + WEB AUDIO SYNTH)
+     **************************************************************************/
+    function setTimerMode(mode, mins) {
+      pauseTimer();
+      timer.mode = mode;
+      timer.totalSeconds = mins * 60;
+      timer.remainingSeconds = mins * 60;
+
+      ['pomodoro', 'deep', 'short', 'long'].forEach(m => {
+        const btn = document.getElementById(`modeBtn-${m}`);
+        if (!btn) return;
+        if (m === mode) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      updateTimerModeIndicator(false);
+      updateTimerUI();
+    }
+
+    function stepTimerDuration(deltaMins) {
+      const next = Math.max(60, Math.min(180 * 60, timer.remainingSeconds + deltaMins * 60));
+      timer.remainingSeconds = next;
+      timer.totalSeconds = Math.max(timer.totalSeconds, next);
+      updateTimerUI();
+    }
+
+    function toggleTimer() {
+      if (timer.isRunning) pauseTimer();
+      else startTimer();
+    }
+
+    function startTimer() {
+      if (timer.isRunning) return;
+      timer.isRunning = true;
+      document.getElementById('timerStatusTag').textContent = 'IN FLOW';
+      document.getElementById('timerStatusTag').className = 'text-[10px] font-mono-num uppercase tracking-widest text-[var(--accent-electric)] mb-1 font-semibold';
+      document.getElementById('mainStartIcon').className = 'ph-fill ph-pause text-sm';
+      document.getElementById('mainStartLabel').textContent = 'Pause Session';
+      document.getElementById('persistentTimerIcon').className = 'ph-fill ph-pause text-xs';
+      document.getElementById('timerAuraGlow').classList.add('running');
+
+      const pill = document.getElementById('persistentTimerPill');
+      pill.classList.remove('hidden');
+      pill.classList.add('flex');
+
+      timer.intervalId = setInterval(() => {
+        if (timer.remainingSeconds > 0) {
+          timer.remainingSeconds--;
+          updateTimerUI();
+        } else {
+          completeTimerEarly();
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      timer.isRunning = false;
+      if (timer.intervalId) {
+        clearInterval(timer.intervalId);
+        timer.intervalId = null;
+      }
+      document.getElementById('timerStatusTag').textContent = 'PAUSED';
+      document.getElementById('timerStatusTag').className = 'text-[10px] font-mono-num uppercase tracking-widest text-[var(--accent-amber)] mb-1';
+      document.getElementById('mainStartIcon').className = 'ph-fill ph-play text-sm';
+      document.getElementById('mainStartLabel').textContent = 'Resume';
+      document.getElementById('persistentTimerIcon').className = 'ph-fill ph-play text-xs';
+      const aura = document.getElementById('timerAuraGlow');
+      if (aura) aura.classList.remove('running');
+    }
+
+    function resetTimer() {
+      pauseTimer();
+      timer.remainingSeconds = timer.totalSeconds;
+      document.getElementById('timerStatusTag').textContent = 'STANDBY';
+      document.getElementById('timerStatusTag').className = 'text-[10px] font-mono-num uppercase tracking-widest text-[var(--text-muted)] mb-1';
+      document.getElementById('mainStartLabel').textContent = 'Start Session';
+      document.getElementById('persistentTimerPill').classList.add('hidden');
+      document.getElementById('persistentTimerPill').classList.remove('flex');
+      updateTimerUI();
+    }
+
+    function stepCalendarMonth(delta) {
+      let m = state.calMonth + delta;
+      let y = state.calYear;
+      if (m < 0) { m = 11; y--; }
+      else if (m > 11) { m = 0; y++; }
+      state.calMonth = m;
+      state.calYear = y;
+      renderCalendarMonthGrid();
+    }
+
+    function renderCalendarMonthGrid() {
+      const y = state.calYear;
+      const m = state.calMonth;
+      const firstDay = new Date(y, m, 1);
+
+      document.getElementById('calMonthHeader').textContent = firstDay.toLocaleDateString('en-US', {
+        month: 'long', year: 'numeric'
+      });
+
+      const startWeekday = firstDay.getDay();
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      const prevMonthDays = new Date(y, m, 0).getDate();
+
+      const grid = document.getElementById('calendarMonthGrid');
+      grid.innerHTML = '';
+
+      // Leading days
+      for (let i = startWeekday - 1; i >= 0; i--) {
+        const dNum = prevMonthDays - i;
+        const key = toDateKey(new Date(y, m - 1, dNum));
+        grid.appendChild(createCalendarCell(dNum, key, true));
+      }
+
+      // Current month days
+      for (let dNum = 1; dNum <= daysInMonth; dNum++) {
+        const key = toDateKey(new Date(y, m, dNum));
+        grid.appendChild(createCalendarCell(dNum, key, false));
+      }
+
+      // Trailing days
+      const total = startWeekday + daysInMonth;
+      const rem = (7 - (total % 7)) % 7;
+      for (let dNum = 1; dNum <= rem; dNum++) {
+        const key = toDateKey(new Date(y, m + 1, dNum));
+        grid.appendChild(createCalendarCell(dNum, key, true));
+      }
+    }
+
+    function createCalendarCell(dayNum, dateKey, isMuted) {
+      const cell = document.createElement('div');
+      const isSelected = dateKey === state.selectedDate;
+      const isToday = dateKey === todayKey;
+
+      cell.className = `cal-day-cell ${isSelected ? 'selected-day' : ''} ${isMuted ? 'muted-day' : ''}`;
+      cell.onclick = () => selectDate(dateKey);
+      cell.ondblclick = () => {
+        selectDate(dateKey);
+        openBlockModal(null, 9 * 60);
+      };
+
+      const blocks = state.blocksByDate[dateKey] || [];
+      const tasks = state.tasksByDate[dateKey] || [];
+      const milestones = state.milestones.filter(ms => ms.dateKey === dateKey);
+
+      const topRow = document.createElement('div');
+      topRow.className = 'flex items-center justify-between';
+      topRow.innerHTML = `
+        <span class="text-xs font-mono-num font-semibold ${
+          isToday
+            ? 'px-1.5 py-0.5 rounded bg-[var(--accent-electric)] text-white'
+            : 'text-[var(--text-primary)]'
+        }">${dayNum}</span>
+        ${tasks.length > 0 ? `<span class="text-[10px] font-mono-num text-[var(--text-muted)]">${tasks.filter(t => !t.completed).length}t</span>` : ''}
+      `;
+
+      const pillsBox = document.createElement('div');
+      pillsBox.className = 'space-y-1 mt-1 overflow-hidden';
+
+      milestones.slice(0, 1).forEach(ms => {
+        const p = document.createElement('div');
+        p.className = 'text-[10px] px-1.5 py-0.5 rounded bg-[var(--accent-rose-soft)] text-[var(--accent-rose)] font-semibold truncate';
+        p.textContent = `⚑ ${ms.title}`;
+        pillsBox.appendChild(p);
+      });
+
+      const maxBlocks = milestones.length > 0 ? 2 : 3;
+      blocks.slice(0, maxBlocks).forEach(b => {
+        const dotColor = b.category === 'deep'
+          ? 'bg-[var(--accent-electric)]'
+          : b.category === 'study'
+          ? 'bg-[var(--accent-cyan)]'
+          : b.category === 'meeting'
+          ? 'bg-[var(--accent-amber)]'
+          : 'bg-[var(--accent-emerald)]';
+
+        const p = document.createElement('div');
+        p.className = 'text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-interactive)] text-[var(--text-primary)] truncate flex items-center gap-1';
+        p.innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${dotColor} shrink-0"></span><span class="truncate">${escapeHtml(b.title)}</span>`;
+        pillsBox.appendChild(p);
+      });
+
+      if (blocks.length > maxBlocks) {
+        const more = document.createElement('div');
+        more.className = 'text-[9px] font-mono-num text-[var(--text-muted)] pl-1';
+        more.textContent = `+${blocks.length - maxBlocks} more`;
+        pillsBox.appendChild(more);
+      }
+
+      cell.appendChild(topRow);
+      cell.appendChild(pillsBox);
+      return cell;
+    }
+
+    function renderDayTimeline() {
+      const d = fromDateKey(state.selectedDate);
+      document.getElementById('dayPlannerDateTitle').textContent = d.toLocaleDateString('en-US', {
+        weekday: 'long', month: 'short', day: 'numeric'
+      });
+
+      const blocks = state.blocksByDate[state.selectedDate] || [];
+      const totalMins = blocks.reduce((acc, b) => acc + Math.max(0, b.endMin - b.startMin), 0);
+      document.getElementById('dayPlannerHoursBadge').textContent = `${(totalMins / 60).toFixed(1)}h planned`;
+
+      const surface = document.getElementById('dayTimelineSurface');
+      surface.innerHTML = '';
+
+      // 1. Render Hour Slots (06:00 - 23:00)
+      for (let h = START_HOUR; h < END_HOUR; h++) {
+        const slot = document.createElement('div');
+        slot.className = 'day-hour-slot flex items-start group';
+        const label = formatMins12(h * 60).replace(':00 ', ' ');
+
+        slot.innerHTML = `
+          <div class="w-14 pr-2.5 pt-1 text-right text-[10px] font-mono-num text-[var(--text-muted)] shrink-0">
+            ${label}
+          </div>
+          <div onclick="openBlockModal(null, ${h * 60})" class="flex-1 h-full cursor-pointer group-hover:bg-[var(--bg-hover)]/40 transition-colors relative">
+            <span class="opacity-0 group-hover:opacity-100 text-[10px] font-mono-num text-[var(--text-muted)] absolute left-2.5 top-1">
+              + Click to plan at ${formatMins12(h * 60)}
+            </span>
+          </div>
+        `;
+        surface.appendChild(slot);
+      }
+
+      // 2. Live Laser Needle on Today
+      if (state.selectedDate === todayKey) {
+        const now = new Date();
+        const curMins = now.getHours() * 60 + now.getMinutes();
+        if (curMins >= START_HOUR * 60 && curMins <= END_HOUR * 60) {
+          const topPx = ((curMins - START_HOUR * 60) / 60) * HOUR_HEIGHT;
+          const laser = document.createElement('div');
+          laser.className = 'laser-now-line';
+          laser.style.top = `${topPx}px`;
+          laser.innerHTML = `
+            <div class="laser-now-dot"></div>
+            <span class="absolute -left-14 -top-2 text-[9px] font-mono-num font-bold px-1 py-0.2 rounded bg-[var(--accent-rose)] text-white">
+              ${formatMins12(curMins).replace(' ', '')}
+            </span>
+          `;
+          surface.appendChild(laser);
+        }
+      }
+
+      // 3. Render Scheduled Time Blocks
+      blocks.forEach(b => {
+        const sClamp = Math.max(START_HOUR * 60, b.startMin);
+        const eClamp = Math.min(END_HOUR * 60, b.endMin);
+        const dur = Math.max(25, eClamp - sClamp);
+
+        const topPx = ((sClamp - START_HOUR * 60) / 60) * HOUR_HEIGHT;
+        const heightPx = Math.max(30, (dur / 60) * HOUR_HEIGHT - 2);
+
+        const el = document.createElement('div');
+        el.className = `timeline-block cat-${b.category}`;
+        el.style.top = `${topPx}px`;
+        el.style.height = `${heightPx}px`;
+        el.onclick = (e) => {
+          e.stopPropagation();
+          openBlockModal(b);
+        };
+
+        el.innerHTML = `
+          <div class="flex items-start justify-between gap-2 h-full">
+            <div class="min-w-0 flex-1">
+              <div class="text-xs font-semibold text-[var(--text-primary)] truncate">${escapeHtml(b.title)}</div>
+              <div class="text-[10px] font-mono-num text-[var(--text-secondary)]">${formatMins12(b.startMin)} – ${formatMins12(b.endMin)}</div>
+            </div>
+            <button onclick="event.stopPropagation(); launchBlockIntoTimerById('${b.id}')" title="Start Focus Timer for this block"
+              class="tactile-btn px-2 py-0.5 rounded bg-black/25 hover:bg-black/40 text-[10px] font-mono-num text-[var(--text-primary)] flex items-center gap-1 shrink-0">
+              <i class="ph-fill ph-play text-[9px]"></i>
+              <span>Focus</span>
+            </button>
+          </div>
+        `;
+        surface.appendChild(el);
+      });
+    }
+
+    function scrollToTimelineNow() {
+      const vp = document.getElementById('dayTimelineViewport');
+      if (!vp) return;
+      const now = new Date();
+      const targetH = Math.max(START_HOUR, Math.min(END_HOUR - 4, now.getHours() - 1));
+      vp.scrollTo({ top: (targetH - START_HOUR) * HOUR_HEIGHT, behavior: 'smooth' });
+    }
+
+    function launchBlockIntoTimerById(blockId) {
+      const blocks = state.blocksByDate[state.selectedDate] || [];
+      const b = blocks.find(item => item.id === blockId);
+      if (b) launchBlockIntoTimer(b);
+    }
+
+    function launchBlockIntoTimer(block) {
+      const durMins = Math.max(5, Math.min(180, block.endMin - block.startMin));
+      pauseTimer();
+      timer.targetLabel = block.title;
+      timer.targetType = 'block';
+      timer.targetId = block.id;
+      timer.totalSeconds = durMins * 60;
+      timer.remainingSeconds = durMins * 60;
+      updateTimerUI();
+      switchView('focus', false);
+      showToast(`Loaded "${block.title}" (${durMins}m) into Focus Timer`);
+    }
+
+    /**************************************************************************
+     * 7. VIEW 3: TIME MANAGEMENT & CAPACITY ENGINE
+     **************************************************************************/
+    function renderTimeManagementView() {
+      const blocks = state.blocksByDate[state.selectedDate] || [];
+      const tasks = state.tasksByDate[state.selectedDate] || [];
+      const stats = state.focusStatsByDate[state.selectedDate] || { sessions: 0, minutes: 0 };
+
+      let deepMins = 0, studyMins = 0, meetingMins = 0, restMins = 0;
+      blocks.forEach(b => {
+        const d = Math.max(0, b.endMin - b.startMin);
+        if (b.category === 'deep') deepMins += d;
+        else if (b.category === 'study') studyMins += d;
+        else if (b.category === 'meeting') meetingMins += d;
+        else restMins += d;
+      });
+
+      const totalPlannedMins = deepMins + studyMins + meetingMins + restMins;
+      const openTaskMins = tasks.filter(t => !t.completed).reduce((acc, t) => acc + (t.estMins || 25), 0);
+      const wakingBudgetMins = 16 * 60;
+      const freeBufferMins = Math.max(0, wakingBudgetMins - totalPlannedMins);
+
+      // Top KPIs
+      document.getElementById('tmMetricPlanned').textContent = `${(totalPlannedMins / 60).toFixed(1)}h`;
+      document.getElementById('tmMetricPlannedSub').textContent = `${Math.round((totalPlannedMins / wakingBudgetMins) * 100)}% of 16.0h waking budget`;
+
+      document.getElementById('tmMetricActual').textContent = `${(stats.minutes / 60).toFixed(1)}h`;
+      document.getElementById('tmMetricActualSub').textContent = `${stats.sessions} focus sessions logged`;
+
+      document.getElementById('tmMetricTaskEst').textContent = `${(openTaskMins / 60).toFixed(1)}h`;
+      document.getElementById('tmMetricTaskSub').textContent = `${tasks.filter(t => !t.completed).length} open tasks in queue`;
+
+      document.getElementById('tmMetricBuffer').textContent = `${(freeBufferMins / 60).toFixed(1)}h`;
+
+      const selObj = fromDateKey(state.selectedDate);
+      document.getElementById('tmDateLabel').textContent = selObj.toLocaleDateString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric'
+      });
+
+      // Load Status Badge
+      const loadBadge = document.getElementById('tmLoadStatusBadge');
+      if (totalPlannedMins > 11 * 60) {
+        loadBadge.textContent = 'HIGH COGNITIVE LOAD';
+        loadBadge.className = 'text-[11px] font-mono-num font-semibold px-2.5 py-1 rounded-md bg-[var(--accent-rose-soft)] text-[var(--accent-rose)]';
+      } else if (totalPlannedMins >= 4 * 60) {
+        loadBadge.textContent = 'OPTIMAL FLOW BALANCE';
+        loadBadge.className = 'text-[11px] font-mono-num font-semibold px-2.5 py-1 rounded-md bg-[var(--accent-emerald-soft)] text-[var(--accent-emerald)]';
+      } else {
+        loadBadge.textContent = 'LIGHT SCHEDULE';
+        loadBadge.className = 'text-[11px] font-mono-num font-semibold px-2.5 py-1 rounded-md bg-[var(--bg-interactive)] text-[var(--text-secondary)]';
+      }
+
+      // Segmented Bar Widths
+      document.getElementById('tmBarDeep').style.width = `${Math.min(100, (deepMins / wakingBudgetMins) * 100)}%`;
+      document.getElementById('tmBarStudy').style.width = `${Math.min(100, (studyMins / wakingBudgetMins) * 100)}%`;
+      document.getElementById('tmBarMeeting').style.width = `${Math.min(100, (meetingMins / wakingBudgetMins) * 100)}%`;
+      document.getElementById('tmBarRest').style.width = `${Math.min(100, (restMins / wakingBudgetMins) * 100)}%`;
+
+      // Category Breakdown Rows
+      const cats = [
+        { label: 'Deep Work & Engineering', mins: deepMins, color: 'bg-[var(--accent-electric)]', target: '4.0h ideal' },
+        { label: 'Study & Synthesis', mins: studyMins, color: 'bg-[var(--accent-cyan)]', target: '2.0h ideal' },
+        { label: 'Meetings & Sync', mins: meetingMins, color: 'bg-[var(--accent-amber)]', target: '< 2.0h cap' },
+        { label: 'Rest & Recovery', mins: restMins, color: 'bg-[var(--accent-emerald)]', target: '1.5h min' }
+      ];
+
+      const catWrap = document.getElementById('tmCategoryBreakdown');
+      catWrap.innerHTML = '';
+      cats.forEach(c => {
+        const row = document.createElement('div');
+        row.className = 'instrument-sub px-3.5 py-2.5 flex items-center justify-between';
+        row.innerHTML = `
+          <div class="flex items-center gap-2.5">
+            <span class="w-2.5 h-2.5 rounded-full ${c.color}"></span>
+            <span class="text-xs font-medium text-[var(--text-primary)]">${c.label}</span>
+          </div>
+          <div class="flex items-center gap-3 font-mono-num">
+            <span class="text-[11px] text-[var(--text-muted)]">${c.target}</span>
+            <span class="text-xs font-bold text-[var(--text-primary)] w-12 text-right">${(c.mins / 60).toFixed(1)}h</span>
+          </div>
+        `;
+        catWrap.appendChild(row);
+      });
+
+      // 7-Day Weekly Horizon Bars
+      const weeklyWrap = document.getElementById('tmWeeklyBars');
+      weeklyWrap.innerHTML = '';
+      const startOfWeek = new Date(selObj);
+      startOfWeek.setDate(selObj.getDate() - selObj.getDay());
+
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(startOfWeek);
+        d.setDate(startOfWeek.getDate() + i);
+        const k = toDateKey(d);
+        const dayBlocks = state.blocksByDate[k] || [];
+        const dayHours = dayBlocks.reduce((acc, b) => acc + (b.endMin - b.startMin), 0) / 60;
+        const heightPct = Math.min(100, Math.max(8, (dayHours / 10) * 100));
+        const isSel = k === state.selectedDate;
+
+        const col = document.createElement('div');
+        col.className = 'flex flex-col items-center gap-1.5 h-full justify-end cursor-pointer group';
+        col.onclick = () => selectDate(k);
+        col.innerHTML = `
+          <span class="text-[10px] font-mono-num text-[var(--text-secondary)]">${dayHours.toFixed(1)}h</span>
+          <div class="w-full bg-[var(--bg-interactive)] rounded-md h-24 flex items-end p-0.5 border ${isSel ? 'border-[var(--accent-electric)]' : 'border-[var(--border-hairline)]'}">
+            <div class="w-full rounded-xs transition-all duration-300 ${isSel ? 'bg-[var(--accent-electric)]' : 'bg-[var(--text-secondary)]/40 group-hover:bg-[var(--accent-electric)]/70'}" style="height: ${heightPct}%"></div>
+          </div>
+          <span class="text-[10px] font-mono-num ${isSel ? 'text-[var(--accent-electric)] font-bold' : 'text-[var(--text-muted)]'}">
+            ${d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 3)}
+          </span>
+        `;
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="instrument-sub p-5 text-center text-xs text-[var(--text-muted)]">
+            No tasks in this view for the selected date.
+          </div>
+        `;
+      } else {
+        filtered.forEach(t => {
+          const isTargeted = timer.targetType === 'task' && timer.targetId === t.id;
+          const item = document.createElement('div');
+          item.className = `task-row-item instrument-sub p-3 flex items-center justify-between gap-2 ${
+            isTargeted ? 'border-[var(--accent-electric)] bg-[var(--accent-electric-soft)]' : ''
+          }`;
+          item.innerHTML = `
+            <div onclick="toggleTaskComplete('${t.id}')" class="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer">
+              <i class="ph-bold ${t.completed ? 'ph-check-circle text-[var(--accent-emerald)] scale-110' : 'ph-circle text-[var(--text-muted)]'} text-sm shrink-0 transition-transform"></i>
+              <span class="text-xs font-medium truncate ${t.completed ? 'line-through text-[var(--text-muted)]' : 'text-[var(--text-primary)]'}">
+                ${escapeHtml(t.title)}
+              </span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="text-[10px] font-mono-num px-1.5 py-0.5 rounded bg-[var(--bg-void)] text-[var(--text-secondary)]">${t.estMins || 25}m</span>
+              <button onclick="lockTaskIntoTimer('${t.id}')" title="Load into Focus Timer" class="tactile-btn p-1.5 rounded hover:bg-[var(--bg-hover)] text-[var(--accent-electric)]">
+                <i class="ph-fill ph-play text-xs"></i>
+              </button>
+              <button onclick="scheduleTaskOnCalendar('${t.id}')" title="Plan on Calendar Timeline" class="tactile-btn p-1.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-secondary)]">
+                <i class="ph-bold ph-calendar-plus text-xs"></i>
+              </button>
+              <button onclick="deleteTask('${t.id}')" title="Remove" class="tactile-btn p-1.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--accent-rose)]">
+                <i class="ph ph-x text-xs"></i>
+              </button>
+            </div>
+          `;
+          container.appendChild(item);
+        });
+      }
+    }
+
+    // Smart Auto-Scheduler for Open Tasks
+    function autoScheduleUnplannedTasks() {
+      const openTasks = (state.tasksByDate[state.selectedDate] || []).filter(t => !t.completed);
+      if (openTasks.length === 0) {
+        showToast('No uncompleted tasks to schedule on this date');
+        return;
+      }
+
+      if (!state.blocksByDate[state.selectedDate]) state.blocksByDate[state.selectedDate] = [];
+      const blocks = state.blocksByDate[state.selectedDate];
+
+      let cursorMin = 9 * 60; // Start scanning from 09:00 AM
+      let scheduledCount = 0;
+
+      openTasks.forEach(task => {
+        // Check if already scheduled by title
+        if (blocks.some(b => b.title.toLowerCase() === task.title.toLowerCase())) return;
+
+        const dur = task.estMins >= 50 ? 60 : 30;
+        while (cursorMin + dur <= 21 * 60) {
+          const conflict = blocks.some(b => cursorMin < b.endMin && (cursorMin + dur) > b.startMin);
+          if (!conflict) {
+            blocks.push({
+              id: 'b-' + Date.now() + '-' + scheduledCount,
+              title: task.title,
+              startMin: cursorMin,
+              endMin: cursorMin + dur,
+              category: 'deep',
+              notes: 'Auto-scheduled by Time Management Engine'
+            });
+            scheduledCount++;
+            cursorMin += dur + 30; // Leave 30m buffer
+            break;
+          }
+          cursorMin += 30;
+        }
+      });
+
+      blocks.sort((a, b) => a.startMin - b.startMin);
+      saveState();
+      renderAll();
+      showToast(scheduledCount > 0 ? `Auto-scheduled ${scheduledCount} task(s) into free slots` : 'All open tasks are already on the timeline');
+    }
+
+    /**************************************************************************
+     * 8. MODALS (TIME BLOCK, MILESTONE, TARGET PICKER, COMMAND PALETTE)
+     **************************************************************************/
+    function populateBlockTimeSelects() {
+      const sSel = document.getElementById('blockStartSelect');
+      const eSel = document.getElementById('blockEndSelect');
+      sSel.innerHTML = '';
+      eSel.innerHTML = '';
+
+      for (let h = START_HOUR; h <= END_HOUR; h++) {
+        for (let m of [0, 30]) {
+          if (h === END_HOUR && m === 30) continue;
+          const mins = h * 60 + m;
+          const label = formatMins12(mins);
+          sSel.add(new Option(label, mins));
+          eSel.add(new Option(label, mins));
+        }
+      }
+    }
+
+    function openBlockModal(block = null, defaultStart = 9 * 60) {
+      const backdrop = document.getElementById('blockModalBackdrop');
+      const editId = document.getElementById('blockEditId');
+      const titleIn = document.getElementById('blockTitleInput');
+      const dateIn = document.getElementById('blockDateInput');
+      const startSel = document.getElementById('blockStartSelect');
+      const endSel = document.getElementById('blockEndSelect');
+      const notesIn = document.getElementById('blockNotesInput');
+      const delBtn = document.getElementById('blockDeleteBtn');
+      const launchBtn = document.getElementById('blockFocusLaunchBtn');
+
+      dateIn.value = state.selectedDate;
+
+      if (block && block.id) {
+        document.getElementById('blockModalHeading').textContent = 'Edit Scheduled Block';
+        editId.value = block.id;
+        titleIn.value = block.title;
+        startSel.value = block.startMin;
+        endSel.value = block.endMin;
+        notesIn.value = block.notes || '';
+        const r = document.querySelector(`input[name="blockCatRadio"][value="${block.category}"]`);
+        if (r) r.checked = true;
+        delBtn.classList.remove('hidden');
+        launchBtn.classList.remove('hidden');
+      } else {
+        document.getElementById('blockModalHeading').textContent = 'Schedule Time Block';
+        editId.value = '';
+        titleIn.value = block ? block.title : '';
+        const s = block ? block.startMin : defaultStart;
+        startSel.value = s;
+        endSel.value = block ? block.endMin : Math.min(END_HOUR * 60, s + 60);
+        notesIn.value = block ? (block.notes || '') : '';
+        const r = document.querySelector(`input[name="blockCatRadio"][value="${block ? block.category : 'deep'}"]`);
+        if (r) r.checked = true;
+        delBtn.classList.add('hidden');
+        launchBtn.classList.add('hidden');
+      }
+
+      validateBlockOverlap();
+      backdrop.classList.add('open');
+      setTimeout(() => titleIn.focus(), 40);
+    }
+
+    function closeBlockModal() {
+      document.getElementById('blockModalBackdrop').classList.remove('open');
+    }
+
+    function validateBlockOverlap() {
+      const editId = document.getElementById('blockEditId').value;
+      const dateKey = document.getElementById('blockDateInput').value || state.selectedDate;
+      const s = Number(document.getElementById('blockStartSelect').value);
+      const e = Number(document.getElementById('blockEndSelect').value);
+      const list = state.blocksByDate[dateKey] || [];
+
+      const overlap = list.some(b => b.id !== editId && s < b.endMin && e > b.startMin);
+      const notice = document.getElementById('blockConflictNotice');
+      if (overlap) {
+        notice.classList.remove('hidden');
+        notice.classList.add('flex');
+      } else {
+        notice.classList.add('hidden');
+        notice.classList.remove('flex');
+      }
+    }
+
+    function handleSaveBlock(e) {
+      e.preventDefault();
+      const editId = document.getElementById('blockEditId').value;
+      const title = document.getElementById('blockTitleInput').value.trim();
+      const targetDate = document.getElementById('blockDateInput').value || state.selectedDate;
+      let s = Number(document.getElementById('blockStartSelect').value);
+      let end = Number(document.getElementById('blockEndSelect').value);
+      const notes = document.getElementById('blockNotesInput').value.trim();
+      const catRadio = document.querySelector('input[name="blockCatRadio"]:checked');
+      const category = catRadio ? catRadio.value : 'deep';
+
+      if (end <= s) end = s + 30;
+      if (!state.blocksByDate[targetDate]) state.blocksByDate[targetDate] = [];
+
+      if (editId && targetDate === state.selectedDate) {
+        const idx = state.blocksByDate[targetDate].findIndex(b => b.id === editId);
+        if (idx > -1) {
+          state.blocksByDate[targetDate][idx] = { id: editId, title, startMin: s, endMin: end, category, notes };
+        }
+      } else {
+        if (editId) {
+          state.blocksByDate[state.selectedDate] = (state.blocksByDate[state.selectedDate] || []).filter(b => b.id !== editId);
+        }
+        state.blocksByDate[targetDate].push({
+          id: 'b-' + Date.now(),
+          title,
+          startMin: s,
+          endMin: end,
+          category,
+          notes
+        });
+      }
+
+      state.blocksByDate[targetDate].sort((a, b) => a.startMin - b.startMin);
+      state.selectedDate = targetDate;
+      saveState();
+      closeBlockModal();
+      renderAll();
+      showToast(`Scheduled "${title}" on ${targetDate}`);
+    }
+
+    function handleDeleteBlock() {
+      const editId = document.getElementById('blockEditId').value;
+      if (!editId) return;
+      state.blocksByDate[state.selectedDate] = (state.blocksByDate[state.selectedDate] || []).filter(b => b.id !== editId);
+      saveState();
+      closeBlockModal();
+      renderAll();
+      showToast('Time block removed');
+    }
+
+    function launchModalBlockIntoTimer() {
+      const editId = document.getElementById('blockEditId').value;
+      closeBlockModal();
+      launchBlockIntoTimerById(editId);
+    }
+
+    // Milestone Modal
+    function openMilestoneModal() {
+      document.getElementById('msDateInput').value = state.selectedDate;
+      document.getElementById('msTitleInput').value = '';
+      document.getElementById('milestoneModalBackdrop').classList.add('open');
+      setTimeout(() => document.getElementById('msTitleInput').focus(), 40);
+    }
+
+    function closeMilestoneModal() {
+      document.getElementById('milestoneModalBackdrop').classList.remove('open');
+    }
+
+    function handleSaveMilestone(e) {
+      e.preventDefault();
+      const title = document.getElementById('msTitleInput').value.trim();
+      const dateKey = document.getElementById('msDateInput').value || state.selectedDate;
+      if (!title) return;
+
+      state.milestones.push({ id: 'm-' + Date.now(), title, dateKey });
+      saveState();
+      closeMilestoneModal();
+      renderAll();
+      showToast('D-Day Milestone saved');
+    }
+
+    function deleteMilestone(id) {
+      state.milestones = state.milestones.filter(m => m.id !== id);
+      saveState();
+      renderAll();
+    }
+
+    // Target Picker Modal
+    function openTargetPickerModal() {
+      const list = document.getElementById('targetPickerList');
+      list.innerHTML = '';
+
+      const tasks = (state.tasksByDate[state.selectedDate] || []).filter(t => !t.completed);
+      const blocks = state.blocksByDate[state.selectedDate] || [];
+
+      tasks.forEach(t => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full instrument-sub p-3 text-left flex items-center justify-between hover:border-[var(--accent-electric)]';
+        btn.onclick = () => {
+          lockTaskIntoTimer(t.id);
+          closeTargetPickerModal();
+        };
+        btn.innerHTML = `
+          <span class="text-xs font-medium truncate">☑ ${escapeHtml(t.title)}</span>
+          <span class="text-[10px] font-mono-num text-[var(--accent-electric)]">${t.estMins || 25}m</span>
+        `;
+        list.appendChild(btn);
+      });
+
+      blocks.forEach(b => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full instrument-sub p-3 text-left flex items-center justify-between hover:border-[var(--accent-electric)]';
+        btn.onclick = () => {
+          launchBlockIntoTimer(b);
+          closeTargetPickerModal();
+        };
+        btn.innerHTML = `
+          <span class="text-xs font-medium truncate">⏱ ${escapeHtml(b.title)}</span>
+          <span class="text-[10px] font-mono-num text-[var(--text-secondary)]">${formatMins12(b.startMin)}</span>
+        `;
+        list.appendChild(btn);
+      });
+
+      document.getElementById('targetModalBackdrop').classList.add('open');
+    }
+
+    function closeTargetPickerModal() {
+      document.getElementById('targetModalBackdrop').classList.remove('open');
+    }
+
+    // Instant Command Palette (⌘K)
+    const COMMANDS = [
+      { label: 'Switch to Focus Flow Timer', kbd: '1', action: () => switchView('focus', true) },
+      { label: 'Switch to Calendar & Day Planner', kbd: '2', action: () => switchView('calendar', true) },
+      { label: 'Switch to Time Management & Capacity', kbd: '3', action: () => switchView('timemgmt', true) },
+      { label: 'Toggle Persistent Spotify Sonic Deck', kbd: 'M', action: () => toggleSpotifyDrawer() },
+      { label: 'Schedule New Time Block on Selected Date', kbd: 'N', action: () => openBlockModal() },
+      { label: 'Start / Pause Active Focus Timer', kbd: 'Space', action: () => toggleTimer() },
+      { label: 'Auto-Schedule Unplanned Tasks into Timeline', kbd: 'Auto', action: () => autoScheduleUnplannedTasks() },
+      { label: 'Jump Calendar to Today', kbd: 'Today', action: () => jumpToToday() },
+      { label: 'Toggle Dark Room / Alabaster Light Theme', kbd: 'Theme', action: () => toggleTheme() }
+    ];
+
+    function openCommandPalette() {
+      const el = document.getElementById('cmdPaletteBackdrop');
+      el.classList.add('open');
+      const input = document.getElementById('cmdSearchInput');
+      input.value = '';
+      renderCommandList('');
+      input.focus();
+    }
+
+    function closeCommandPalette() {
+      document.getElementById('cmdPaletteBackdrop').classList.remove('open');
+    }
+
+    function renderCommandList(query) {
+      const q = query.toLowerCase().trim();
+      const wrap = document.getElementById('cmdResultsList');
+      wrap.innerHTML = '';
+
+      COMMANDS.filter(c => c.label.toLowerCase().includes(q)).forEach(c => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full px-3 py-2.5 rounded-lg text-left flex items-center justify-between hover:bg-[var(--bg-interactive)] text-xs text-[var(--text-primary)]';
+        btn.onclick = () => {
+          closeCommandPalette();
+          c.action();
+        };
+        btn.innerHTML = `
+          <span>${c.label}</span>
+          <span class="kbd-badge">${c.kbd}</span>
+        `;
+        wrap.appendChild(btn);
+      });
+    }
+
+    /**************************************************************************
+     * 9. PROCEDURAL WEB AUDIO SYNTHESIZER (BROWN NOISE, RAIN, 40HZ GAMMA)
+     **************************************************************************/
+    function stopSynthNodes() {
+      synth.nodes.forEach(n => {
+        try { n.stop(); n.disconnect(); } catch (e) {}
+      });
+      synth.nodes = [];
+    }
+
+    function toggleSynthSound(type) {
+      if (!synth.ctx) {
+        synth.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (synth.ctx.state === 'suspended') synth.ctx.resume();
+
+      if (synth.activeType === type) {
+        stopSynthNodes();
+        synth.activeType = null;
+        updateSynthUI();
+        return;
+      }
+
+      stopSynthNodes();
+      synth.activeType = type;
+
+      const ctx = synth.ctx;
+      const master = ctx.createGain();
+      master.gain.value = synth.volume;
+      master.connect(ctx.destination);
+      synth.gainNode = master;
+
+      if (type === 'brown' || type === 'rain') {
+        const len = 2 * ctx.sampleRate;
+        const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        let last = 0;
+        for (let i = 0; i < len; i++) {
+          const w = Math.random() * 2 - 1;
+          if (type === 'brown') {
+            data[i] = (last + 0.02 * w) / 1.02;
+            last = data[i];
+            data[i] *= 0.25;
+          } else {
+            data[i] = w * 0.12;
+          }
+        }
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.loop = true;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = type === 'brown' ? 400 : 1050;
+
+        src.connect(filter);
+        filter.connect(master);
+        src.start();
+        synth.nodes.push(src);
+      } else if (type === 'gamma') {
+        [200, 240].forEach(freq => {
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          g.gain.value = 0.08;
+          osc.connect(g);
+          g.connect(master);
+          osc.start();
+          synth.nodes.push(osc);
+        });
+      }
+
+      updateSynthUI();
+    }
+
+    function updateSynthUI() {
+      const pill = document.getElementById('synthStatusPill');
+      ['brown', 'rain', 'gamma'].forEach(t => {
+        const btn = document.getElementById(`synthBtn-${t}`);
+        if (synth.activeType === t) {
+          btn.className = 'tactile-btn px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1 bg-[var(--accent-electric-soft)] border border-[var(--accent-electric)] text-[var(--text-primary)] font-semibold';
+        } else {
+          btn.className = 'tactile-btn btn-ghost px-2.5 py-1 text-[11px] flex items-center gap-1';
+        }
+      });
+
+      if (synth.activeType) {
+        pill.textContent = 'LIVE';
+        pill.className = 'text-[10px] font-mono-num px-1.5 py-0.2 rounded bg-[var(--accent-emerald-soft)] text-[var(--accent-emerald)] font-bold';
+      } else {
+        pill.textContent = 'OFF';
+        pill.className = 'text-[10px] font-mono-num px-1.5 py-0.2 rounded bg-[var(--bg-elevated)] text-[var(--text-muted)]';
+      }
+    }
+
+    function setSynthVolume(val) {
+      synth.volume = Number(val) / 100;
+      if (synth.gainNode) synth.gainNode.gain.value = synth.volume;
+    }
+
+    function playHarmonicChime() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const now = ctx.currentTime;
+        [528, 660, 792].forEach((f, i) => {
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, now + i * 0.11);
+          g.gain.setValueAtTime(0.001, now + i * 0.11);
+          g.gain.exponentialRampToValueAtTime(0.09, now + i * 0.11 + 0.03);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.11 + 1.2);
+          osc.connect(g);
+          g.connect(ctx.destination);
+          osc.start(now + i * 0.11);
+          osc.stop(now + i * 0.11 + 1.25);
+        });
+      } catch (e) {}
+    }
+
+    /**************************************************************************
+     * 10. TOAST & MASTER RENDER
+     **************************************************************************/
+    function showToast(msg) {
+      const toast = document.getElementById('sonnerToast');
+      document.getElementById('sonnerToastText').textContent = msg;
+      toast.classList.add('visible');
+      clearTimeout(window.__sonnerTimer);
+      window.__sonnerTimer = setTimeout(() => {
+        toast.classList.remove('visible');
+      }, 2400);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function renderAll() {
+      renderHeaderBar();
+      renderFocusView();
+      renderCalendarMonthGrid();
+      renderDayTimeline();
+      renderTimeManagementView();
+    }
+
+    window.onload = initApp;
+  </script>
+</body>
+</html>

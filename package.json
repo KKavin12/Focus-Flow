@@ -1,0 +1,21 @@
+{
+  "name": "focus-flow",
+  "version": "2.0.0",
+  "description": "FLOW // Master Command Center - Advanced Productivity, Pomodoro, Ambience & Activity Time Limit Dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "serve": "node server.js",
+    "deploy": "npx wrangler pages deploy ."
+  },
+  "keywords": [
+    "productivity",
+    "pomodoro",
+    "time-tracker",
+    "screen-time",
+    "daily-limits",
+    "web-audio"
+  ],
+  "author": "",
+  "license": "MIT"
+}
