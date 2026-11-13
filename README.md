@@ -1,103 +1,78 @@
-# ⚡ FLOW // Master Command Center & Activity Time Guard
+# ⚡ Focus Flow — Quiet Instrument for Focus, Calendar & Time Management
 
-An ultra-sleek, cyberpunk-inspired productivity dashboard and habit control center. Engineered with high-performance focus timers, ambient sound synthesis, an offline music vault with a **Polished Audio Studio**, task management with subtasks, 12-week telemetry, and **Activity Time Budgets & 30-15 Break Cycles** (such as capping TV / Phone screen time to a maximum of 3 hours per day with built-in 30m watch / 15m break intervals).
-
----
-
-## 🌟 Key Features
-
-### 🎵 1. Polished Audio Studio & Music Vault (Overhauled)
-- **Now Playing Hero Card**:
-  - **Spinning Vinyl Disc**: Realistic concentric grooves that spin when playing and pause when stopped.
-  - **Animated Equalizer Bars (`ılılı`)**: Live dynamic frequency wave animations.
-  - **Tactile Transport Controls**: Shuffle (`🔀`), Repeat All/One (`🔁/🔂`), Rewind 10s (`-10s`), Big Central Play/Pause button with neon glow, Fast-Forward 10s (`+10s`), Next/Previous.
-  - **Volume & Smart Break Ducking**: Smooth volume bar + one-click toggle to automatically duck music volume to 25% during rest breaks.
-- **Floating HUD Mini-Player**:
-  - A glassmorphic mini-player widget appears directly on the main screen whenever audio is playing, allowing you to pause, skip, or inspect the track without opening the drawer.
-- **Built-in Procedural Lo-Fi Synth Radio**:
-  - **Zero audio files needed**: Live synthesized jazz Rhodes 7th chord progressions with warm vinyl crackle via the Web Audio API. One click to start listening immediately.
-- **Offline IndexedDB Playlist Vault**:
-  - Drag-and-drop or browse local audio files (`.mp3, .wav, .ogg, .flac, .m4a`).
-  - Search/filter tracks, track size indicator, and individual track management.
-- **Multi-Channel Ambient Soundscape Mixer**:
-  - 6 independent organic audio channels: **Rainfall & Storm**, **Vinyl Crackle**, **Brown Noise**, **55Hz Resonant Hum**, **14Hz Flow Binaural**, and **10Hz Alpha Waves**.
-  - One-click soundscape presets: *"Rainy Cafe"*, *"Deep Cyber"*, and *"Zen Alpha"*.
+An ultra-refined spatial productivity instrument engineered with Emil Kowalski motion discipline, specular dark-room surfaces, high-precision timing, a Google Calendar-style day planner, and an ambient acoustic deck.
 
 ---
 
-### 🛡️ 2. Daily Time Budgets with 30-15 Break Cycles
-- **Pomodoro-Style Break Cycles for Leisure**:
-  - **📺 Activity Session**: Default **30 minutes** of watching TV or phone scrolling.
-  - **☕ Rest & Stretch Break**: Default **15 minutes** to look away from screens, stretch, and relax.
-  - **Total Daily Cap**: Default **3 Hours (180 mins)**.
-  - Quick HUD presets: **`30/15`**, **`45/15`**, **`20/10`**, or **`⚙️ Custom`**.
-- **Smart Countdown & Transition Alerts**:
-  - **When 30m Ends**: SoundEngine chime rings and a **Windows 11 Fluent Acrylic Toast Notification** prompts you to start your 15-minute break.
-  - **When 15m Break Ends**: Chime rings and prompts you to begin your next session or switch back to productive focus.
-  - **Hard 3-Hour Cap Enforcement**: If total accumulated activity time hits 3 hours on any day, an urgent alert triggers and warns you that your daily leisure allowance is exhausted.
+## 🌟 Core Engines & Capabilities
+
+### 1. ⏱️ Precision Focus Studio
+- **Dual Timing Engine**:
+  - **Countdown Timer**: Pomodoro (25m), Deep Flow (50m), Short Break (5m), Long Rest (15m), plus quick `+5m` / `-5m` adjustments and custom duration inputs.
+  - **High-Precision Stopwatch**: Millisecond count-up tracking with lap split telemetry table.
+- **Dynamic Breathing Aura**: Radial pulse glow around timer dial when in active flow state.
+- **Tabular Monospace Numerals**: Fixed-width font to prevent layout jitter during countdowns.
+- **Harmonic Completion Chime**: Procedural sine-wave chord synthesized via Web Audio API when sessions complete.
+
+### 2. 📅 Google Calendar Spatial Planner
+- **Interactive Month Grid**: Visual day cells showing scheduled time blocks, active tasks, and milestone badges. Double-click any cell to create a block.
+- **64px/Hour Day Timeline**: Crisp timeline grid with live red laser needle tracking the current time of day.
+- **Category Balancing**: Color-coded blocks for *Deep Work*, *Study & Research*, *Meetings*, *Workouts*, and *Rest*.
+- **Auto-Fill AI Slotting**: One-click button to automatically slot open task queue items into free calendar gaps.
+
+### 3. 📊 16-Hour Waking Capacity Engine
+- **Capacity Reconciler**: Visual progress breakdown tracking allocation against your daily budget (e.g. 16.0 hours waking window).
+- **Cognitive Load Telemetry**: Flags overload states (*High Cognitive Load* vs. *Optimal Flow Balance*).
+- **7-Day Focus Horizon**: Planned vs. completed hours bar chart across the week.
+- **D-Day Milestones**: Target deadlines with real-time `D-x` countdown badges.
+
+### 4. 🎵 Spotify Sonic Deck & Web Audio Synthesizer
+- **Persistent Spotify Deck**: Floating player drawer that persists seamlessly across tabs with curated study streams (Deep Focus, Coding Mode, Lo-Fi, Phonk, Synthwave) + custom link/URI loader.
+- **Procedural Acoustic Synth Underlay**: Built-in Web Audio synthesis for *Warm Brown Noise*, *Soft Rain*, and *40Hz Gamma Waves* with volume slider.
+
+### 5. 🛡️ Dual-Layer Local & Cloud Vault
+- **Instant LocalStorage Persistence**: Every task, scheduled block, milestone, and preset is instantly saved locally.
+- **Firestore Cloud Sync Ready**: Built-in support for Firebase Firestore sync with offline fallback.
+- **JSON Backup Engine**: One-click JSON data export and restore.
+
+### 6. ⌨️ Global Command Palette (`⌘K` / `Ctrl+K`)
+- Quick switcher for views, timer controls, time blocks, Spotify drawer, settings, and themes.
+- Shortcuts:
+  - `1`: Focus Studio
+  - `2`: Calendar Planner
+  - `3`: Time Management
+  - `Space`: Start / Pause Timer or Stopwatch
+  - `M`: Toggle Spotify Deck
+  - `S`: Open Settings
+  - `N`: Schedule Time Block
+  - `Esc`: Close open modal / drawer
 
 ---
 
-### ⏱️ 3. Multi-Mode Focus & Timer Engine
-- **Pomodoro Technique**: Standard sprints with presets (`25/5`, `50/10`, `90/20`) and custom durations.
-- **Cap Guard Mode**: 30-minute watch / 15-minute break cycles with daily caps.
-- **Flowtime Mode**: Uninterrupted deep work timer that tracks accumulated focus without forced breaks.
-- **Stopwatch**: Standard millisecond-accurate count-up timer.
-- **Precision Delta Timing**: Built with background tab drift protection using timestamp difference math (`Date.now()`).
-- **Screen Wake Lock API**: Prevents your display from going to sleep during active sprints.
+## 🚀 How to Run
 
----
+### Direct Browser Opening (Zero Setup)
+Simply open `index.html` in any modern web browser (Chrome, Edge, Brave, Firefox, Safari). It is fully self-contained with offline storage!
 
-### 📊 4. Telemetry & Analytics Dashboard
-- **Focus vs. Leisure Balance Index**: Compares total productive focus minutes against screen leisure time today with an overall focus ratio (e.g. `78% 🔥`).
-- **Daily Activity Caps Monitor**: Breakdown bars for all monitored limits.
-- **12-Week Heatmap (84 Days)**: GitHub-style activity contribution grid.
-- **7-Day Trend Chart**: Vertical bar telemetry tracking consistency over the last week.
-
-### ⏰ 5. Scheduled Clock Alarm Engine
-- **Set Specific Clock Times**:
-  - Direct time-picker input for precise hours and minutes (e.g. `07:30 AM`, `10:15 PM`).
-  - Custom label tags (e.g. *"Wake Up"*, *"Stand Up & Hydrate"*, *"End Work Day"*, *"Power Nap"*).
-  - Recurrence rules: **Daily**, **Weekdays (Mon-Fri)**, **Weekends (Sat-Sun)**, or **Once**.
-- **Real-Time Chime & Desktop Notifications**:
-  - Live background watcher detects the exact minute without audio drift.
-  - Plays an authentic repeating Windows clock chime loop (`alarm_chime`) via the Web Audio API.
-  - Fires HTML5 Desktop Notifications if granted permission.
-  - Prompts an interactive **Windows 11 Fluent Acrylic Toast Notification** with **Snooze (+5m)**, **Snooze (+10m)**, or **Dismiss**.
-- **Quick Power Nap Timers**:
-  - One-click buttons to set an alarm offset from right now: **`+15m`**, **`+30m`**, **`+45m`**, and **`+1h`**.
-- **Header Countdown Pill**:
-  - Real-time indicator in the top header displaying the next scheduled alarm and hours/minutes remaining (e.g. `⏰ Next: 08:00 AM (in 4h 30m)`).
-
----
-
-## ⌨️ Keyboard Shortcuts
-
-| Shortcut | Action |
-| :--- | :--- |
-| `Space` | Start / Pause Active Timer |
-| `R` | Reset Timer Interval |
-| `Z` | Toggle Zen Clean Mode |
-| `A` | Open Scheduled Alarms Drawer |
-| `B` | Open Time Budgets & 30-15 Break Cycles Drawer |
-| `T` | Open Task Manager Drawer |
-| `M` | Open Polished Music Studio & Vault |
-| `L` | Open Telemetry & Heatmap Dashboard |
-| `?` | Show Keyboard Shortcuts Cheat Sheet |
-| `Esc` | Close drawers, modals, and dismiss alert toasts |
-
----
-
-## 🚀 How to Run & Deploy
-
-### Instant Browser Opening (Zero Setup)
-Simply double-click `index.html` or drag it into any modern web browser (Google Chrome, Microsoft Edge, Brave, Firefox, Safari). Everything works immediately offline!
-
-### Cloudflare Pages Deployment
-Because everything is contained in `index.html`, simply push this repository to GitHub:
+### Local Node Server
 ```bash
-git add .
-git commit -m "Upgrade Audio Studio, 30-15 break cycles, and 3-hour TV limit"
-git push
+npm start
+# Opens at http://localhost:3000
 ```
-Cloudflare Pages will serve the updated app immediately!
+
+### Deploy to GitHub Pages / Cloudflare Pages / Netlify / Vercel
+Simply push this directory to your GitHub repository and link it to your hosting platform with `index.html` as the root.
+
+---
+
+## 📁 Repository Structure
+
+```text
+├── index.html       # Self-contained, production-ready single-file web app
+├── server.js        # Lightweight local development server
+├── package.json     # Node scripts and project metadata
+├── .gitignore       # Git ignore rules
+├── wrangler.jsonc   # Cloudflare Pages deployment configuration
+└── src/
+    └── App.tsx      # Full React 18 / TypeScript source component (4,900+ lines)
+```

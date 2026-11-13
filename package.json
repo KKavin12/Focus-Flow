@@ -1,0 +1,22 @@
+{
+  "name": "focus-flow",
+  "version": "3.0.0",
+  "description": "Focus Flow — Quiet Instrument for Focus, Calendar & Time Management",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "serve": "node server.js"
+  },
+  "keywords": [
+    "productivity",
+    "focus",
+    "pomodoro",
+    "calendar",
+    "time-management",
+    "stopwatch",
+    "spotify",
+    "web-audio"
+  ],
+  "author": "",
+  "license": "MIT"
+}
